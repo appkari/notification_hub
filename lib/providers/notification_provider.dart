@@ -25,6 +25,7 @@ class NotificationProvider with ChangeNotifier {
     NotificationStore? store,
     bool autoInitialize = true,
   }) : _notificationService = notificationService ?? NotificationService(),
+       _ownsNotificationService = notificationService == null,
        _iconCacheService = iconCacheService ?? IconCacheService(),
        _store = store ?? DriftNotificationStore() {
     if (autoInitialize) {
@@ -33,6 +34,7 @@ class NotificationProvider with ChangeNotifier {
   }
 
   final NotificationService _notificationService;
+  final bool _ownsNotificationService;
   final IconCacheService _iconCacheService;
   final NotificationStore _store;
   List<AppNotification> _notifications = [];
@@ -585,6 +587,9 @@ class NotificationProvider with ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    if (_ownsNotificationService) {
+      _notificationService.dispose();
+    }
     super.dispose();
   }
 

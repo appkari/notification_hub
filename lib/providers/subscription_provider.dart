@@ -42,14 +42,13 @@ class SubscriptionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _subscriptionService.purchaseSubscription();
-      if (success) {
-        _currentSubscription = _subscriptionService.currentSubscription;
+      final requestStarted = await _subscriptionService.purchaseSubscription();
+      if (requestStarted) {
         _error = null;
       } else {
         _error = 'Failed to purchase subscription';
       }
-      return success;
+      return requestStarted;
     } catch (e) {
       _error = 'Error purchasing subscription: $e';
       debugPrint(_error);
@@ -66,7 +65,7 @@ class SubscriptionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _subscriptionService.initialize();
+      await _subscriptionService.refreshSubscriptionStatus();
       _currentSubscription = _subscriptionService.currentSubscription;
       _error = null;
     } catch (e) {
