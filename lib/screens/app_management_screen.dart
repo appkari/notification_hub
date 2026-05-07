@@ -64,7 +64,7 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
 
   Future<void> _loadApps() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -105,17 +105,13 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
   }
 
   void _filterApps() {
-    setState(() {
-      _filteredApps =
-          _apps.where((app) {
-            return app.name.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                app.packageName.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                );
-          }).toList();
-    });
+    _filteredApps =
+        _apps.where((app) {
+          return app.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              app.packageName.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              );
+        }).toList();
   }
 
   @override

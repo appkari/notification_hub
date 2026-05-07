@@ -12,6 +12,7 @@ class SubscriptionService {
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   late StreamSubscription<List<PurchaseDetails>> _subscription;
+  bool _subscriptionAttached = false;
 
   // Product IDs for your subscription
   static const String monthlySubscriptionId = 'notihub_monthly_premium';
@@ -40,6 +41,7 @@ class SubscriptionService {
       onDone: _updateStreamOnDone,
       onError: _updateStreamOnError,
     );
+    _subscriptionAttached = true;
 
     await _initStoreInfo();
     await _loadSubscriptionStatus();
@@ -192,7 +194,10 @@ class SubscriptionService {
   }
 
   void _updateStreamOnDone() {
-    _subscription.cancel();
+    if (_subscriptionAttached) {
+      _subscription.cancel();
+      _subscriptionAttached = false;
+    }
   }
 
   void _updateStreamOnError(dynamic error) {
@@ -200,6 +205,9 @@ class SubscriptionService {
   }
 
   void dispose() {
-    _subscription.cancel();
+    if (_subscriptionAttached) {
+      _subscription.cancel();
+      _subscriptionAttached = false;
+    }
   }
 }

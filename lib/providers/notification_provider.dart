@@ -8,21 +8,35 @@ import '../services/notification_service.dart' show NotificationService;
 import '../services/icon_cache_service.dart' show IconCacheService;
 import '../database/app_database.dart'
     show
-        AppDatabase,
         Notification,
         NotificationHistoryData,
         NotificationsCompanion,
         NotificationHistoryCompanion;
+import '../services/notification_store.dart'
+    show DriftNotificationStore, NotificationStore;
 import 'package:shared_preferences/shared_preferences.dart'
     show SharedPreferences;
 import 'package:drift/drift.dart' show Value;
 
 class NotificationProvider with ChangeNotifier {
-  final NotificationService _notificationService = NotificationService();
-  final _iconCacheService = IconCacheService();
+  NotificationProvider({
+    NotificationService? notificationService,
+    IconCacheService? iconCacheService,
+    NotificationStore? store,
+    bool autoInitialize = true,
+  }) : _notificationService = notificationService ?? NotificationService(),
+       _iconCacheService = iconCacheService ?? IconCacheService(),
+       _store = store ?? DriftNotificationStore() {
+    if (autoInitialize) {
+      _initialize();
+    }
+  }
+
+  final NotificationService _notificationService;
+  final IconCacheService _iconCacheService;
+  final NotificationStore _store;
   List<AppNotification> _notifications = [];
   List<AppNotification> _notificationHistory = [];
-  final AppDatabase _db = AppDatabase();
   int _historyDays = 7;
   bool _isInitialized = false;
   StreamSubscription<AppNotification>? _subscription;
@@ -43,11 +57,6 @@ class NotificationProvider with ChangeNotifier {
 
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
-
-  // Constructor
-  NotificationProvider() {
-    _initialize();
-  }
 
   // Initialize the provider
   Future<void> _initialize() async {
@@ -73,8 +82,9 @@ class NotificationProvider with ChangeNotifier {
   Future<void> loadNotifications() async {
     debugPrint('NotificationProvider: Loading notifications from database...');
     try {
-      final dbNotifs = await _db.getAllNotifications();
+      final dbNotifs = await _store.getAllNotifications();
       _notifications = dbNotifs.map(_fromDbNotification).toList();
+      _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       debugPrint(
         'NotificationProvider: Loaded ${dbNotifs.length} notifications from database.',
       );
@@ -82,7 +92,7 @@ class NotificationProvider with ChangeNotifier {
       debugPrint('NotificationProvider: Error loading notifications: $e');
       // Clear and recreate database on error
       try {
-        await _db.clearNotifications();
+        await _store.clearNotifications();
         _notifications = [];
         debugPrint('NotificationProvider: Database cleared due to error.');
       } catch (clearError) {
@@ -101,12 +111,13 @@ class NotificationProvider with ChangeNotifier {
     try {
       final cutoff = DateTime.now().subtract(Duration(days: _historyDays));
       // Remove old history
-      await _db.deleteHistoryOlderThan(cutoff);
+      await _store.deleteHistoryOlderThan(cutoff);
       _notificationHistory =
-          (await _db.getAllHistory())
+          (await _store.getAllHistory())
               .where((h) => h.timestamp.isAfter(cutoff))
               .map(_fromDbNotificationHistory)
-              .toList();
+              .toList()
+            ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
       debugPrint(
         'NotificationProvider: Loaded ${_notificationHistory.length} history entries from database.',
       );
@@ -114,7 +125,7 @@ class NotificationProvider with ChangeNotifier {
       debugPrint('NotificationProvider: Error loading history: $e');
       // Clear history on error
       try {
-        await _db.clearHistory();
+        await _store.clearHistory();
         _notificationHistory = [];
         debugPrint('NotificationProvider: History cleared due to error.');
       } catch (clearError) {
@@ -163,7 +174,7 @@ class NotificationProvider with ChangeNotifier {
           if (_notificationService.removeIfSourceAppRemoves) {
             final removedNotif = _notifications[idx].copyWith(isRemoved: true);
             await addToHistory(removedNotif);
-            await _db.deleteNotification(removedNotif.id);
+            await _store.deleteNotification(removedNotif.id);
             _notifications.removeAt(idx);
             if (shouldLog) {
               debugPrint(
@@ -189,7 +200,7 @@ class NotificationProvider with ChangeNotifier {
             );
           }
           // Save the new notification to the database
-          await _db.insertNotification(_toDbNotification(notification));
+          await _store.insertNotification(_toDbNotification(notification));
           if (shouldLog) {
             debugPrint(
               'NotificationProvider: Notification \\${notification.id} inserted into database.',
@@ -233,15 +244,13 @@ class NotificationProvider with ChangeNotifier {
   Future<void> clearAllNotifications() async {
     debugPrint('NotificationProvider: Clearing all notifications...');
     // Add all current notifications to history in the database
-    for (final notification in _notifications) {
-      await addToHistory(notification);
-    }
+    await _archiveNotifications(_notifications);
 
     // Clear all notifications from the database
     debugPrint(
       'NotificationProvider: Clearing all notifications from database...',
     );
-    await _db.clearNotifications();
+    await _store.clearNotifications();
     debugPrint(
       'NotificationProvider: All notifications cleared from database.',
     );
@@ -251,6 +260,7 @@ class NotificationProvider with ChangeNotifier {
 
     // Clear all notifications from the in-memory list
     _notifications = [];
+    _updatePersistentSummaryNotification();
     notifyListeners();
   }
 
@@ -283,7 +293,7 @@ class NotificationProvider with ChangeNotifier {
   ) async {
     // final allNotifications = await _notificationService.getNotifications(); // Remove this line
     // Use the database to get paginated notifications instead
-    final newNotifications = await _db.getPaginatedNotifications(
+    final newNotifications = await _store.getPaginatedNotifications(
       page * pageSize, // Offset
       pageSize, // Limit
     );
@@ -302,8 +312,8 @@ class NotificationProvider with ChangeNotifier {
         _notifications.where((n) => n.packageName == packageName).toList();
 
     // Add all to history and remove from system tray
+    await _archiveNotifications(appNotifications);
     for (final notification in appNotifications) {
-      await addToHistory(notification);
       await _notificationService.removeNotificationFromSystemTray(
         notification.key,
       );
@@ -311,7 +321,7 @@ class NotificationProvider with ChangeNotifier {
       debugPrint(
         'NotificationProvider: Deleting notification \\${notification.id} for app $packageName from active database...',
       );
-      await _db.deleteNotification(notification.id);
+      await _store.deleteNotification(notification.id);
       debugPrint(
         'NotificationProvider: Notification \\${notification.id} for app $packageName deleted from active database.',
       );
@@ -319,6 +329,7 @@ class NotificationProvider with ChangeNotifier {
 
     // Remove from active notifications
     _notifications.removeWhere((n) => n.packageName == packageName);
+    _updatePersistentSummaryNotification();
     notifyListeners();
   }
 
@@ -332,7 +343,7 @@ class NotificationProvider with ChangeNotifier {
     );
 
     // Add to history before removing
-    await addToHistory(notification);
+    await addToHistory(notification, reloadHistory: false);
     await _notificationService.removeNotificationFromSystemTray(
       notification.key,
     );
@@ -343,10 +354,12 @@ class NotificationProvider with ChangeNotifier {
     debugPrint(
       'NotificationProvider: Deleting notification $id from active database...',
     );
-    await _db.deleteNotification(id);
+    await _store.deleteNotification(id);
     debugPrint(
       'NotificationProvider: Notification $id deleted from active database.',
     );
+    await loadHistory();
+    _updatePersistentSummaryNotification();
     notifyListeners();
   }
 
@@ -403,7 +416,7 @@ class NotificationProvider with ChangeNotifier {
     final currentLength = _notifications.length;
     final pageSize = 20;
 
-    final newNotifications = await _db.getPaginatedNotifications(
+    final newNotifications = await _store.getPaginatedNotifications(
       currentLength, // Start from the current number of notifications
       pageSize,
     );
@@ -446,15 +459,20 @@ class NotificationProvider with ChangeNotifier {
   }
 
   // Add to notification history
-  Future<void> addToHistory(AppNotification notification) async {
+  Future<void> addToHistory(
+    AppNotification notification, {
+    bool reloadHistory = true,
+  }) async {
     debugPrint(
       'NotificationProvider: Adding notification \\${notification.id} to history database...',
     );
-    await _db.insertHistory(_toDbHistory(notification));
+    await _store.insertHistory(_toDbHistory(notification));
     debugPrint(
       'NotificationProvider: Notification \\${notification.id} added to history database.',
     );
-    await loadHistory(); // Ensure UI updates
+    if (reloadHistory) {
+      await loadHistory();
+    }
   }
 
   // Restore a notification from history (undo)
@@ -462,7 +480,7 @@ class NotificationProvider with ChangeNotifier {
     debugPrint(
       'NotificationProvider: Restoring notification ${notification.id} from history...',
     );
-    await _db.insertNotification(
+    await _store.insertNotification(
       NotificationsCompanion(
         id: Value(notification.id),
         packageName: Value(notification.packageName),
@@ -476,7 +494,7 @@ class NotificationProvider with ChangeNotifier {
         hasContentIntent: Value(notification.hasContentIntent),
       ),
     );
-    await _db.deleteHistory(notification.id);
+    await _store.deleteHistory(notification.id);
     debugPrint(
       'NotificationProvider: Notification ${notification.id} deleted from history database.',
     );
@@ -554,7 +572,11 @@ class NotificationProvider with ChangeNotifier {
     }
     final appCount = appSet.length;
     final notifCount = _notifications.where((n) => !n.isRemoved).length;
-    NotificationService().showPersistentSummaryNotification(
+    if (notifCount == 0) {
+      _notificationService.cancelPersistentSummaryNotification();
+      return;
+    }
+    _notificationService.showPersistentSummaryNotification(
       appCount: appCount,
       notifCount: notifCount,
     );
@@ -563,7 +585,15 @@ class NotificationProvider with ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
-    _notificationService.dispose();
     super.dispose();
+  }
+
+  Future<void> _archiveNotifications(
+    List<AppNotification> notifications,
+  ) async {
+    for (final notification in notifications) {
+      await addToHistory(notification, reloadHistory: false);
+    }
+    await loadHistory();
   }
 }

@@ -5,10 +5,17 @@ import 'package:flutter/material.dart'
         Colors,
         MaterialApp,
         Brightness,
+        CardThemeData,
+        AppBarTheme,
+        BorderRadius,
         StatelessWidget,
+        RoundedRectangleBorder,
+        SnackBarBehavior,
+        SnackBarThemeData,
         ThemeData,
         Widget,
         WidgetsFlutterBinding,
+        Color,
         debugPrint,
         runApp,
         Builder;
@@ -61,25 +68,71 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ChangeNotifierProvider(
+          create: (_) => SubscriptionProvider()..initialize(),
+        ),
       ],
       child: Builder(
         builder: (context) {
           final themeProvider = Provider.of<ThemeProvider>(context);
+          final lightScheme = ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1E3A5F),
+            brightness: Brightness.light,
+          );
+          final darkScheme = ColorScheme.fromSeed(
+            seedColor: const Color(0xFF7DD3FC),
+            brightness: Brightness.dark,
+          );
           return MaterialApp(
             title: FlavorConfig.title,
             theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+              colorScheme: lightScheme,
               useMaterial3: true,
               brightness: Brightness.light,
+              scaffoldBackgroundColor: const Color(0xFFF4F7FB),
+              cardTheme: CardThemeData(
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              appBarTheme: AppBarTheme(
+                backgroundColor: const Color(0xFFF4F7FB),
+                foregroundColor: lightScheme.onSurface,
+                elevation: 0,
+                centerTitle: false,
+              ),
+              snackBarTheme: SnackBarThemeData(
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
             darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.dark,
-              ),
+              colorScheme: darkScheme,
               useMaterial3: true,
               brightness: Brightness.dark,
+              scaffoldBackgroundColor: const Color(0xFF07111F),
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              appBarTheme: AppBarTheme(
+                backgroundColor: const Color(0xFF07111F),
+                foregroundColor: darkScheme.onSurface,
+                elevation: 0,
+                centerTitle: false,
+              ),
+              snackBarTheme: SnackBarThemeData(
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
             themeMode: themeProvider.themeMode,
             initialRoute: '/',

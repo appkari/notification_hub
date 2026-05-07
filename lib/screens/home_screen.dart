@@ -129,9 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Consumer<NotificationProvider>(
         builder: (context, provider, child) {
-          debugPrint(
-            'HomeScreen: notifications count = ${provider.notifications.length}',
-          );
           // Show permission request if not listening
           if (!provider.isListening) {
             // Use the new PermissionRequestWidget
