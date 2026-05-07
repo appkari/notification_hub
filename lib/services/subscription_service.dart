@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -11,8 +12,9 @@ class SubscriptionService {
   SubscriptionService._internal();
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
-  late StreamSubscription<List<PurchaseDetails>> _subscription;
+  StreamSubscription<List<PurchaseDetails>>? _subscription;
   bool _subscriptionAttached = false;
+  bool _isInitialized = false;
 
   // Product IDs for your subscription
   static const String monthlySubscriptionId = 'notihub_monthly_premium';
@@ -34,16 +36,27 @@ class SubscriptionService {
 
   // Initialize the service
   Future<void> initialize() async {
-    final Stream<List<PurchaseDetails>> purchaseUpdated =
-        _inAppPurchase.purchaseStream;
-    _subscription = purchaseUpdated.listen(
-      _onPurchaseUpdated,
-      onDone: _updateStreamOnDone,
-      onError: _updateStreamOnError,
-    );
-    _subscriptionAttached = true;
+    if (_isInitialized) {
+      return;
+    }
+
+    if (!_subscriptionAttached) {
+      final Stream<List<PurchaseDetails>> purchaseUpdated =
+          _inAppPurchase.purchaseStream;
+      _subscription = purchaseUpdated.listen(
+        _onPurchaseUpdated,
+        onDone: _updateStreamOnDone,
+        onError: _updateStreamOnError,
+      );
+      _subscriptionAttached = true;
+    }
 
     await _initStoreInfo();
+    await _loadSubscriptionStatus();
+    _isInitialized = true;
+  }
+
+  Future<void> refreshSubscriptionStatus() async {
     await _loadSubscriptionStatus();
   }
 
@@ -168,7 +181,7 @@ class SubscriptionService {
   Future<void> _saveSubscriptionStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final subscriptionData = _currentSubscription.toJson();
-    await prefs.setString('subscription_data', subscriptionData.toString());
+    await prefs.setString('subscription_data', jsonEncode(subscriptionData));
   }
 
   Future<void> _loadSubscriptionStatus() async {
@@ -177,6 +190,10 @@ class SubscriptionService {
 
     if (subscriptionDataString != null) {
       try {
+        final subscriptionData =
+            jsonDecode(subscriptionDataString) as Map<String, dynamic>;
+        _currentSubscription = SubscriptionModel.fromJson(subscriptionData);
+
         // Parse the saved data and check if subscription is still valid
         final now = DateTime.now();
         if (_currentSubscription.nextBillingDate?.isBefore(now) == true) {
@@ -195,7 +212,7 @@ class SubscriptionService {
 
   void _updateStreamOnDone() {
     if (_subscriptionAttached) {
-      _subscription.cancel();
+      _subscription?.cancel();
       _subscriptionAttached = false;
     }
   }
@@ -206,8 +223,9 @@ class SubscriptionService {
 
   void dispose() {
     if (_subscriptionAttached) {
-      _subscription.cancel();
+      _subscription?.cancel();
       _subscriptionAttached = false;
     }
+    _isInitialized = false;
   }
 }

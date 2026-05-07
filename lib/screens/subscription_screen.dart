@@ -12,14 +12,6 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SubscriptionProvider>().refreshSubscriptionStatus();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -385,8 +377,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Subscription activated successfully!'),
-            backgroundColor: Colors.green,
+            content: Text(
+              'Purchase started. Premium will activate after store confirmation.',
+            ),
+            backgroundColor: Colors.blue,
           ),
         );
       }
