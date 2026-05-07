@@ -2,6 +2,7 @@ import 'package:flutter/material.dart'
     show
         AlertDialog,
         BorderRadius,
+        BorderSide,
         BoxDecoration,
         BuildContext,
         Card,
@@ -35,7 +36,12 @@ import 'package:flutter/material.dart'
         Alignment,
         Row,
         MainAxisSize,
-        SizedBox;
+        SizedBox,
+        Theme,
+        BoxShadow,
+        Offset,
+        TextOverflow,
+        LinearGradient;
 import 'package:provider/provider.dart' show Provider, Consumer;
 import 'package:flutter/foundation.dart' show Uint8List, VoidCallback;
 import 'dart:convert' show base64Decode;
@@ -137,8 +143,11 @@ class AppNotificationCardState extends State<AppNotificationCard> {
 
   Widget _buildDefaultIcon() {
     return CircleAvatar(
-      backgroundColor: Colors.grey[200],
-      child: const Icon(Icons.notifications, color: Colors.grey),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.notifications,
+        color: Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 
@@ -168,14 +177,10 @@ class AppNotificationCardState extends State<AppNotificationCard> {
         child: const Icon(Icons.delete, color: Colors.white, size: 32),
       ),
       onDismissed: (direction) async {
-        if (widget.onDismissed != null) {
-          widget.onDismissed!();
-        }
         final messenger = ScaffoldMessenger.of(context);
-        await Provider.of<NotificationProvider>(
-          context,
-          listen: false,
-        ).clearAppNotifications(widget.packageName);
+        if (widget.onDismissed != null) {
+          await Future.sync(widget.onDismissed!);
+        }
         if (!mounted) return;
         messenger.showSnackBar(
           SnackBar(content: Text('All notifications for $appName cleared')),
@@ -183,10 +188,14 @@ class AppNotificationCardState extends State<AppNotificationCard> {
       },
       child: Card(
         elevation: 0,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        color: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Column(
             children: [
               FutureBuilder<Uint8List?>(
@@ -218,12 +227,26 @@ class AppNotificationCardState extends State<AppNotificationCard> {
                   }
 
                   return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 2,
+                    ),
                     leading: leadingWidget,
                     title: Text(
                       appName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: 17,
+                      ),
+                    ),
+                    subtitle: Text(
+                      mostRecentNotification.title.isNotEmpty
+                          ? mostRecentNotification.title
+                          : 'Latest notification available',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     trailing: Consumer<SubscriptionProvider>(
@@ -238,7 +261,7 @@ class AppNotificationCardState extends State<AppNotificationCard> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.2),
+                                  color: Colors.amber.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
@@ -255,14 +278,27 @@ class AppNotificationCardState extends State<AppNotificationCard> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.deepPurple.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Theme.of(context).colorScheme.primary,
+                                    Theme.of(context).colorScheme.tertiary,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(999),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.18),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
                               child: Text(
                                 '${widget.appNotifications.length}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.deepPurple,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -293,6 +329,16 @@ class AppNotificationCardState extends State<AppNotificationCard> {
                     },
                   );
                 },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
               ),
               ...widget.appNotifications.map(
                 (notification) => DismissibleNotificationItem(

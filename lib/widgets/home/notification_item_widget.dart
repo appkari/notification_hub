@@ -36,8 +36,13 @@ import '../../providers/notification_provider.dart' show NotificationProvider;
 
 class NotificationItemWidget extends StatelessWidget {
   final AppNotification notification;
+  final bool enableInteractions;
 
-  const NotificationItemWidget({super.key, required this.notification});
+  const NotificationItemWidget({
+    super.key,
+    required this.notification,
+    this.enableInteractions = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +69,9 @@ class NotificationItemWidget extends StatelessWidget {
 
     return InkWell(
       onTap: () async {
+        if (!enableInteractions) {
+          return;
+        }
         final provider = Provider.of<NotificationProvider>(
           context,
           listen: false,
@@ -133,6 +141,9 @@ class NotificationItemWidget extends StatelessWidget {
         }
       },
       onLongPress: () {
+        if (!enableInteractions) {
+          return;
+        }
         // Long press shows the notification detail screen
         Navigator.push(
           context,
@@ -168,9 +179,11 @@ class NotificationItemWidget extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      notification.hasContentIntent
-                          ? Icons.open_in_new
-                          : Icons.launch,
+                      enableInteractions
+                          ? notification.hasContentIntent
+                              ? Icons.open_in_new
+                              : Icons.launch
+                          : Icons.history,
                       size: 14,
                       color: Theme.of(context).colorScheme.primary,
                     ),

@@ -40,7 +40,7 @@ class PremiumBanner extends StatelessWidget {
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.deepPurple.withOpacity(0.3),
+                  color: Colors.deepPurple.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -51,7 +51,7 @@ class PremiumBanner extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.2),
+                        color: Colors.amber.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(

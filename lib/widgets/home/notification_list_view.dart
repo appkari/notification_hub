@@ -3,52 +3,38 @@ import 'package:provider/provider.dart';
 
 import '../../providers/notification_provider.dart';
 import '../../models/notification_model.dart';
-import 'app_notification_card.dart'; // Will create this next
+import 'app_notification_card.dart';
 
-class NotificationListView extends StatefulWidget {
+class NotificationListView extends StatelessWidget {
   const NotificationListView({super.key});
-
-  @override
-  State<NotificationListView> createState() => _NotificationListViewState();
-}
-
-class _NotificationListViewState extends State<NotificationListView> {
-  final Set<String> _dismissedApps = {};
 
   @override
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, provider, child) {
         final groupedNotifications = provider.getNotificationsByApp();
-        final apps =
-            groupedNotifications.keys
-                .where(
-                  (k) =>
-                      (groupedNotifications[k]?.isNotEmpty ?? false) &&
-                      !_dismissedApps.contains(k),
-                )
+        final appEntries =
+            groupedNotifications.entries
+                .where((entry) => entry.value.isNotEmpty)
                 .toList();
-        debugPrint('NotificationListView: apps = $apps');
 
         final DateTime veryEarlyDateTime = DateTime.fromMillisecondsSinceEpoch(
           0,
         );
-        apps.sort((a, b) {
-          final latestTimestampA = groupedNotifications[a]
-              ?.map((n) => n.timestamp)
+        appEntries.sort((a, b) {
+          final latestTimestampA = a.value
+              .map((n) => n.timestamp)
               .fold<DateTime>(
                 veryEarlyDateTime,
                 (prev, current) => current.isAfter(prev) ? current : prev,
               );
-          final latestTimestampB = groupedNotifications[b]
-              ?.map((n) => n.timestamp)
+          final latestTimestampB = b.value
+              .map((n) => n.timestamp)
               .fold<DateTime>(
                 veryEarlyDateTime,
                 (prev, current) => current.isAfter(prev) ? current : prev,
               );
-          return (latestTimestampB ?? veryEarlyDateTime).compareTo(
-            latestTimestampA ?? veryEarlyDateTime,
-          );
+          return latestTimestampB.compareTo(latestTimestampA);
         });
 
         return RefreshIndicator(
@@ -57,33 +43,27 @@ class _NotificationListViewState extends State<NotificationListView> {
             children: [
               Expanded(
                 child: ListView.builder(
-                  itemCount: apps.length,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
+                  itemCount: appEntries.length,
                   itemBuilder: (context, index) {
-                    final packageName = apps[index];
-                    List<AppNotification> appNotifications =
-                        groupedNotifications[packageName]!;
+                    final packageName = appEntries[index].key;
+                    final appNotifications = List<AppNotification>.from(
+                      appEntries[index].value,
+                    );
                     appNotifications.sort(
                       (a, b) => b.timestamp.compareTo(a.timestamp),
                     );
-                    debugPrint(
-                      'Building AppNotificationCard for $packageName with ${appNotifications.length} notifications',
-                    );
                     if (appNotifications.isEmpty) {
-                      debugPrint('Skipping $packageName because it is empty');
                       return const SizedBox.shrink();
                     }
                     return AppNotificationCard(
                       packageName: packageName,
                       appNotifications: appNotifications,
-                      onDismissed: () {
-                        setState(() {
-                          _dismissedApps.add(packageName);
-                        });
-                        Provider.of<NotificationProvider>(
-                          context,
-                          listen: false,
-                        ).clearAppNotifications(packageName);
-                      },
+                      onDismissed:
+                          () => Provider.of<NotificationProvider>(
+                            context,
+                            listen: false,
+                          ).clearAppNotifications(packageName),
                     );
                   },
                 ),

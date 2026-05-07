@@ -48,17 +48,23 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
           if (history.isEmpty) {
             return const Center(child: Text('No cleared notifications.'));
           }
-          // Group by appName
+          // Group by package to avoid merging separate apps with the same label.
           final Map<String, List<AppNotification>> grouped = {};
           for (final n in history) {
-            grouped.putIfAbsent(n.appName, () => []).add(n);
+            grouped.putIfAbsent(n.packageName, () => []).add(n);
           }
-          final apps = grouped.keys.toList();
+          final apps =
+              grouped.keys.toList()..sort(
+                (a, b) => grouped[b]!.first.timestamp.compareTo(
+                  grouped[a]!.first.timestamp,
+                ),
+              );
           return ListView.builder(
             itemCount: apps.length,
             itemBuilder: (context, index) {
-              final appName = apps[index];
-              final appNotifications = grouped[appName]!;
+              final packageName = apps[index];
+              final appNotifications = grouped[packageName]!;
+              final appName = appNotifications.first.appName;
               final iconData = appNotifications.first.iconData;
               Widget leadingWidget;
               if (iconData != null && iconData.isNotEmpty) {
@@ -110,6 +116,7 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                               opacity: 0.5,
                               child: NotificationItemWidget(
                                 notification: notification,
+                                enableInteractions: false,
                               ),
                             );
                           },
