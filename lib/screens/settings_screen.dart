@@ -37,13 +37,18 @@ import 'package:flutter/material.dart'
         Column,
         CrossAxisAlignment,
         Image,
-        ThemeMode;
+        ThemeMode,
+        BoxDecoration,
+        BorderRadius,
+        FontWeight,
+        TextStyle;
 import 'package:provider/provider.dart' show Consumer;
 import 'package:notification_listener_service/notification_listener_service.dart'
     show NotificationListenerService;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/notification_provider.dart' show NotificationProvider;
+import '../providers/subscription_provider.dart' show SubscriptionProvider;
 import '../services/notification_service.dart' show NotificationService;
 import '../providers/theme_provider.dart';
 
@@ -441,6 +446,57 @@ class SettingsScreenState extends State<SettingsScreen> {
                             ),
                           );
                         }).toList(),
+                  );
+                },
+              ),
+
+              const Divider(),
+
+              // Premium Subscription Section
+              Consumer<SubscriptionProvider>(
+                builder: (context, subscriptionProvider, _) {
+                  return ListTile(
+                    leading: Icon(
+                      subscriptionProvider.isPremium
+                          ? Icons.star
+                          : Icons.star_border,
+                      color:
+                          subscriptionProvider.isPremium
+                              ? Colors.amber
+                              : Colors.grey,
+                    ),
+                    title: Text(
+                      subscriptionProvider.isPremium
+                          ? 'Premium Active'
+                          : 'Upgrade to Premium',
+                    ),
+                    subtitle: Text(
+                      subscriptionProvider.isPremium
+                          ? 'Enjoy all premium features'
+                          : 'Get advanced features for just ₹1/month',
+                    ),
+                    trailing:
+                        subscriptionProvider.isPremium
+                            ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'PREMIUM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.pushNamed(context, '/subscription'),
                   );
                 },
               ),

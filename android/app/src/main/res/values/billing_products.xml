@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Product IDs for in-app purchases -->
+    <string name="monthly_premium_subscription">notihub_monthly_premium</string>
+    
+    <!-- Product descriptions -->
+    <string name="monthly_premium_title">Premium Monthly Subscription</string>
+    <string name="monthly_premium_description">Unlock all premium features for advanced notification management</string>
+</resources> 
