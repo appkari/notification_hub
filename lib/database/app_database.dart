@@ -19,6 +19,8 @@ class Notifications extends Table {
   TextColumn get key => text().nullable()();
   BoolColumn get hasContentIntent =>
       boolean().withDefault(const Constant(false))();
+  TextColumn get channelId => text().nullable()();
+  TextColumn get channelName => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -36,6 +38,8 @@ class NotificationHistory extends Table {
   TextColumn get key => text().nullable()();
   BoolColumn get hasContentIntent =>
       boolean().withDefault(const Constant(false))();
+  TextColumn get channelId => text().nullable()();
+  TextColumn get channelName => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -46,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,28 +59,21 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 2) {
-        await m.addColumn(
-          notifications,
-          notifications.$columns.firstWhere((c) => c.name == 'key'),
-        );
-        await m.addColumn(
-          notificationHistory,
-          notificationHistory.$columns.firstWhere((c) => c.name == 'key'),
-        );
+        await m.addColumn(notifications, notifications.key);
+        await m.addColumn(notificationHistory, notificationHistory.key);
       }
       if (from < 3) {
-        await m.addColumn(
-          notifications,
-          notifications.$columns.firstWhere(
-            (c) => c.name == 'hasContentIntent',
-          ),
-        );
+        await m.addColumn(notifications, notifications.hasContentIntent);
         await m.addColumn(
           notificationHistory,
-          notificationHistory.$columns.firstWhere(
-            (c) => c.name == 'hasContentIntent',
-          ),
+          notificationHistory.hasContentIntent,
         );
+      }
+      if (from < 4) {
+        await m.addColumn(notifications, notifications.channelId);
+        await m.addColumn(notifications, notifications.channelName);
+        await m.addColumn(notificationHistory, notificationHistory.channelId);
+        await m.addColumn(notificationHistory, notificationHistory.channelName);
       }
     },
   );

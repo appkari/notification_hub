@@ -119,6 +119,28 @@ class $NotificationsTable extends Notifications
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _channelIdMeta = const VerificationMeta(
+    'channelId',
+  );
+  @override
+  late final GeneratedColumn<String> channelId = GeneratedColumn<String>(
+    'channel_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _channelNameMeta = const VerificationMeta(
+    'channelName',
+  );
+  @override
+  late final GeneratedColumn<String> channelName = GeneratedColumn<String>(
+    'channel_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -131,6 +153,8 @@ class $NotificationsTable extends Notifications
     isRemoved,
     key,
     hasContentIntent,
+    channelId,
+    channelName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -219,6 +243,21 @@ class $NotificationsTable extends Notifications
         ),
       );
     }
+    if (data.containsKey('channel_id')) {
+      context.handle(
+        _channelIdMeta,
+        channelId.isAcceptableOrUnknown(data['channel_id']!, _channelIdMeta),
+      );
+    }
+    if (data.containsKey('channel_name')) {
+      context.handle(
+        _channelNameMeta,
+        channelName.isAcceptableOrUnknown(
+          data['channel_name']!,
+          _channelNameMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -276,6 +315,14 @@ class $NotificationsTable extends Notifications
             DriftSqlType.bool,
             data['${effectivePrefix}has_content_intent'],
           )!,
+      channelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}channel_id'],
+      ),
+      channelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}channel_name'],
+      ),
     );
   }
 
@@ -296,6 +343,8 @@ class Notification extends DataClass implements Insertable<Notification> {
   final bool isRemoved;
   final String? key;
   final bool hasContentIntent;
+  final String? channelId;
+  final String? channelName;
   const Notification({
     required this.id,
     required this.packageName,
@@ -307,6 +356,8 @@ class Notification extends DataClass implements Insertable<Notification> {
     required this.isRemoved,
     this.key,
     required this.hasContentIntent,
+    this.channelId,
+    this.channelName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -325,6 +376,12 @@ class Notification extends DataClass implements Insertable<Notification> {
       map['key'] = Variable<String>(key);
     }
     map['has_content_intent'] = Variable<bool>(hasContentIntent);
+    if (!nullToAbsent || channelId != null) {
+      map['channel_id'] = Variable<String>(channelId);
+    }
+    if (!nullToAbsent || channelName != null) {
+      map['channel_name'] = Variable<String>(channelName);
+    }
     return map;
   }
 
@@ -343,6 +400,14 @@ class Notification extends DataClass implements Insertable<Notification> {
       isRemoved: Value(isRemoved),
       key: key == null && nullToAbsent ? const Value.absent() : Value(key),
       hasContentIntent: Value(hasContentIntent),
+      channelId:
+          channelId == null && nullToAbsent
+              ? const Value.absent()
+              : Value(channelId),
+      channelName:
+          channelName == null && nullToAbsent
+              ? const Value.absent()
+              : Value(channelName),
     );
   }
 
@@ -362,6 +427,8 @@ class Notification extends DataClass implements Insertable<Notification> {
       isRemoved: serializer.fromJson<bool>(json['isRemoved']),
       key: serializer.fromJson<String?>(json['key']),
       hasContentIntent: serializer.fromJson<bool>(json['hasContentIntent']),
+      channelId: serializer.fromJson<String?>(json['channelId']),
+      channelName: serializer.fromJson<String?>(json['channelName']),
     );
   }
   @override
@@ -378,6 +445,8 @@ class Notification extends DataClass implements Insertable<Notification> {
       'isRemoved': serializer.toJson<bool>(isRemoved),
       'key': serializer.toJson<String?>(key),
       'hasContentIntent': serializer.toJson<bool>(hasContentIntent),
+      'channelId': serializer.toJson<String?>(channelId),
+      'channelName': serializer.toJson<String?>(channelName),
     };
   }
 
@@ -392,6 +461,8 @@ class Notification extends DataClass implements Insertable<Notification> {
     bool? isRemoved,
     Value<String?> key = const Value.absent(),
     bool? hasContentIntent,
+    Value<String?> channelId = const Value.absent(),
+    Value<String?> channelName = const Value.absent(),
   }) => Notification(
     id: id ?? this.id,
     packageName: packageName ?? this.packageName,
@@ -403,6 +474,8 @@ class Notification extends DataClass implements Insertable<Notification> {
     isRemoved: isRemoved ?? this.isRemoved,
     key: key.present ? key.value : this.key,
     hasContentIntent: hasContentIntent ?? this.hasContentIntent,
+    channelId: channelId.present ? channelId.value : this.channelId,
+    channelName: channelName.present ? channelName.value : this.channelName,
   );
   Notification copyWithCompanion(NotificationsCompanion data) {
     return Notification(
@@ -420,6 +493,9 @@ class Notification extends DataClass implements Insertable<Notification> {
           data.hasContentIntent.present
               ? data.hasContentIntent.value
               : this.hasContentIntent,
+      channelId: data.channelId.present ? data.channelId.value : this.channelId,
+      channelName:
+          data.channelName.present ? data.channelName.value : this.channelName,
     );
   }
 
@@ -435,7 +511,9 @@ class Notification extends DataClass implements Insertable<Notification> {
           ..write('iconData: $iconData, ')
           ..write('isRemoved: $isRemoved, ')
           ..write('key: $key, ')
-          ..write('hasContentIntent: $hasContentIntent')
+          ..write('hasContentIntent: $hasContentIntent, ')
+          ..write('channelId: $channelId, ')
+          ..write('channelName: $channelName')
           ..write(')'))
         .toString();
   }
@@ -452,6 +530,8 @@ class Notification extends DataClass implements Insertable<Notification> {
     isRemoved,
     key,
     hasContentIntent,
+    channelId,
+    channelName,
   );
   @override
   bool operator ==(Object other) =>
@@ -466,7 +546,9 @@ class Notification extends DataClass implements Insertable<Notification> {
           other.iconData == this.iconData &&
           other.isRemoved == this.isRemoved &&
           other.key == this.key &&
-          other.hasContentIntent == this.hasContentIntent);
+          other.hasContentIntent == this.hasContentIntent &&
+          other.channelId == this.channelId &&
+          other.channelName == this.channelName);
 }
 
 class NotificationsCompanion extends UpdateCompanion<Notification> {
@@ -480,6 +562,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
   final Value<bool> isRemoved;
   final Value<String?> key;
   final Value<bool> hasContentIntent;
+  final Value<String?> channelId;
+  final Value<String?> channelName;
   final Value<int> rowid;
   const NotificationsCompanion({
     this.id = const Value.absent(),
@@ -492,6 +576,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
     this.isRemoved = const Value.absent(),
     this.key = const Value.absent(),
     this.hasContentIntent = const Value.absent(),
+    this.channelId = const Value.absent(),
+    this.channelName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   NotificationsCompanion.insert({
@@ -505,6 +591,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
     this.isRemoved = const Value.absent(),
     this.key = const Value.absent(),
     this.hasContentIntent = const Value.absent(),
+    this.channelId = const Value.absent(),
+    this.channelName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        packageName = Value(packageName),
@@ -523,6 +611,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
     Expression<bool>? isRemoved,
     Expression<String>? key,
     Expression<bool>? hasContentIntent,
+    Expression<String>? channelId,
+    Expression<String>? channelName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -536,6 +626,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
       if (isRemoved != null) 'is_removed': isRemoved,
       if (key != null) 'key': key,
       if (hasContentIntent != null) 'has_content_intent': hasContentIntent,
+      if (channelId != null) 'channel_id': channelId,
+      if (channelName != null) 'channel_name': channelName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -551,6 +643,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
     Value<bool>? isRemoved,
     Value<String?>? key,
     Value<bool>? hasContentIntent,
+    Value<String?>? channelId,
+    Value<String?>? channelName,
     Value<int>? rowid,
   }) {
     return NotificationsCompanion(
@@ -564,6 +658,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
       isRemoved: isRemoved ?? this.isRemoved,
       key: key ?? this.key,
       hasContentIntent: hasContentIntent ?? this.hasContentIntent,
+      channelId: channelId ?? this.channelId,
+      channelName: channelName ?? this.channelName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -601,6 +697,12 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
     if (hasContentIntent.present) {
       map['has_content_intent'] = Variable<bool>(hasContentIntent.value);
     }
+    if (channelId.present) {
+      map['channel_id'] = Variable<String>(channelId.value);
+    }
+    if (channelName.present) {
+      map['channel_name'] = Variable<String>(channelName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -620,6 +722,8 @@ class NotificationsCompanion extends UpdateCompanion<Notification> {
           ..write('isRemoved: $isRemoved, ')
           ..write('key: $key, ')
           ..write('hasContentIntent: $hasContentIntent, ')
+          ..write('channelId: $channelId, ')
+          ..write('channelName: $channelName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -742,6 +846,28 @@ class $NotificationHistoryTable extends NotificationHistory
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _channelIdMeta = const VerificationMeta(
+    'channelId',
+  );
+  @override
+  late final GeneratedColumn<String> channelId = GeneratedColumn<String>(
+    'channel_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _channelNameMeta = const VerificationMeta(
+    'channelName',
+  );
+  @override
+  late final GeneratedColumn<String> channelName = GeneratedColumn<String>(
+    'channel_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -754,6 +880,8 @@ class $NotificationHistoryTable extends NotificationHistory
     isRemoved,
     key,
     hasContentIntent,
+    channelId,
+    channelName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -842,6 +970,21 @@ class $NotificationHistoryTable extends NotificationHistory
         ),
       );
     }
+    if (data.containsKey('channel_id')) {
+      context.handle(
+        _channelIdMeta,
+        channelId.isAcceptableOrUnknown(data['channel_id']!, _channelIdMeta),
+      );
+    }
+    if (data.containsKey('channel_name')) {
+      context.handle(
+        _channelNameMeta,
+        channelName.isAcceptableOrUnknown(
+          data['channel_name']!,
+          _channelNameMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -902,6 +1045,14 @@ class $NotificationHistoryTable extends NotificationHistory
             DriftSqlType.bool,
             data['${effectivePrefix}has_content_intent'],
           )!,
+      channelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}channel_id'],
+      ),
+      channelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}channel_name'],
+      ),
     );
   }
 
@@ -923,6 +1074,8 @@ class NotificationHistoryData extends DataClass
   final bool isRemoved;
   final String? key;
   final bool hasContentIntent;
+  final String? channelId;
+  final String? channelName;
   const NotificationHistoryData({
     required this.id,
     required this.packageName,
@@ -934,6 +1087,8 @@ class NotificationHistoryData extends DataClass
     required this.isRemoved,
     this.key,
     required this.hasContentIntent,
+    this.channelId,
+    this.channelName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -952,6 +1107,12 @@ class NotificationHistoryData extends DataClass
       map['key'] = Variable<String>(key);
     }
     map['has_content_intent'] = Variable<bool>(hasContentIntent);
+    if (!nullToAbsent || channelId != null) {
+      map['channel_id'] = Variable<String>(channelId);
+    }
+    if (!nullToAbsent || channelName != null) {
+      map['channel_name'] = Variable<String>(channelName);
+    }
     return map;
   }
 
@@ -970,6 +1131,14 @@ class NotificationHistoryData extends DataClass
       isRemoved: Value(isRemoved),
       key: key == null && nullToAbsent ? const Value.absent() : Value(key),
       hasContentIntent: Value(hasContentIntent),
+      channelId:
+          channelId == null && nullToAbsent
+              ? const Value.absent()
+              : Value(channelId),
+      channelName:
+          channelName == null && nullToAbsent
+              ? const Value.absent()
+              : Value(channelName),
     );
   }
 
@@ -989,6 +1158,8 @@ class NotificationHistoryData extends DataClass
       isRemoved: serializer.fromJson<bool>(json['isRemoved']),
       key: serializer.fromJson<String?>(json['key']),
       hasContentIntent: serializer.fromJson<bool>(json['hasContentIntent']),
+      channelId: serializer.fromJson<String?>(json['channelId']),
+      channelName: serializer.fromJson<String?>(json['channelName']),
     );
   }
   @override
@@ -1005,6 +1176,8 @@ class NotificationHistoryData extends DataClass
       'isRemoved': serializer.toJson<bool>(isRemoved),
       'key': serializer.toJson<String?>(key),
       'hasContentIntent': serializer.toJson<bool>(hasContentIntent),
+      'channelId': serializer.toJson<String?>(channelId),
+      'channelName': serializer.toJson<String?>(channelName),
     };
   }
 
@@ -1019,6 +1192,8 @@ class NotificationHistoryData extends DataClass
     bool? isRemoved,
     Value<String?> key = const Value.absent(),
     bool? hasContentIntent,
+    Value<String?> channelId = const Value.absent(),
+    Value<String?> channelName = const Value.absent(),
   }) => NotificationHistoryData(
     id: id ?? this.id,
     packageName: packageName ?? this.packageName,
@@ -1030,6 +1205,8 @@ class NotificationHistoryData extends DataClass
     isRemoved: isRemoved ?? this.isRemoved,
     key: key.present ? key.value : this.key,
     hasContentIntent: hasContentIntent ?? this.hasContentIntent,
+    channelId: channelId.present ? channelId.value : this.channelId,
+    channelName: channelName.present ? channelName.value : this.channelName,
   );
   NotificationHistoryData copyWithCompanion(NotificationHistoryCompanion data) {
     return NotificationHistoryData(
@@ -1047,6 +1224,9 @@ class NotificationHistoryData extends DataClass
           data.hasContentIntent.present
               ? data.hasContentIntent.value
               : this.hasContentIntent,
+      channelId: data.channelId.present ? data.channelId.value : this.channelId,
+      channelName:
+          data.channelName.present ? data.channelName.value : this.channelName,
     );
   }
 
@@ -1062,7 +1242,9 @@ class NotificationHistoryData extends DataClass
           ..write('iconData: $iconData, ')
           ..write('isRemoved: $isRemoved, ')
           ..write('key: $key, ')
-          ..write('hasContentIntent: $hasContentIntent')
+          ..write('hasContentIntent: $hasContentIntent, ')
+          ..write('channelId: $channelId, ')
+          ..write('channelName: $channelName')
           ..write(')'))
         .toString();
   }
@@ -1079,6 +1261,8 @@ class NotificationHistoryData extends DataClass
     isRemoved,
     key,
     hasContentIntent,
+    channelId,
+    channelName,
   );
   @override
   bool operator ==(Object other) =>
@@ -1093,7 +1277,9 @@ class NotificationHistoryData extends DataClass
           other.iconData == this.iconData &&
           other.isRemoved == this.isRemoved &&
           other.key == this.key &&
-          other.hasContentIntent == this.hasContentIntent);
+          other.hasContentIntent == this.hasContentIntent &&
+          other.channelId == this.channelId &&
+          other.channelName == this.channelName);
 }
 
 class NotificationHistoryCompanion
@@ -1108,6 +1294,8 @@ class NotificationHistoryCompanion
   final Value<bool> isRemoved;
   final Value<String?> key;
   final Value<bool> hasContentIntent;
+  final Value<String?> channelId;
+  final Value<String?> channelName;
   final Value<int> rowid;
   const NotificationHistoryCompanion({
     this.id = const Value.absent(),
@@ -1120,6 +1308,8 @@ class NotificationHistoryCompanion
     this.isRemoved = const Value.absent(),
     this.key = const Value.absent(),
     this.hasContentIntent = const Value.absent(),
+    this.channelId = const Value.absent(),
+    this.channelName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   NotificationHistoryCompanion.insert({
@@ -1133,6 +1323,8 @@ class NotificationHistoryCompanion
     this.isRemoved = const Value.absent(),
     this.key = const Value.absent(),
     this.hasContentIntent = const Value.absent(),
+    this.channelId = const Value.absent(),
+    this.channelName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        packageName = Value(packageName),
@@ -1151,6 +1343,8 @@ class NotificationHistoryCompanion
     Expression<bool>? isRemoved,
     Expression<String>? key,
     Expression<bool>? hasContentIntent,
+    Expression<String>? channelId,
+    Expression<String>? channelName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1164,6 +1358,8 @@ class NotificationHistoryCompanion
       if (isRemoved != null) 'is_removed': isRemoved,
       if (key != null) 'key': key,
       if (hasContentIntent != null) 'has_content_intent': hasContentIntent,
+      if (channelId != null) 'channel_id': channelId,
+      if (channelName != null) 'channel_name': channelName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1179,6 +1375,8 @@ class NotificationHistoryCompanion
     Value<bool>? isRemoved,
     Value<String?>? key,
     Value<bool>? hasContentIntent,
+    Value<String?>? channelId,
+    Value<String?>? channelName,
     Value<int>? rowid,
   }) {
     return NotificationHistoryCompanion(
@@ -1192,6 +1390,8 @@ class NotificationHistoryCompanion
       isRemoved: isRemoved ?? this.isRemoved,
       key: key ?? this.key,
       hasContentIntent: hasContentIntent ?? this.hasContentIntent,
+      channelId: channelId ?? this.channelId,
+      channelName: channelName ?? this.channelName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1229,6 +1429,12 @@ class NotificationHistoryCompanion
     if (hasContentIntent.present) {
       map['has_content_intent'] = Variable<bool>(hasContentIntent.value);
     }
+    if (channelId.present) {
+      map['channel_id'] = Variable<String>(channelId.value);
+    }
+    if (channelName.present) {
+      map['channel_name'] = Variable<String>(channelName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1248,6 +1454,8 @@ class NotificationHistoryCompanion
           ..write('isRemoved: $isRemoved, ')
           ..write('key: $key, ')
           ..write('hasContentIntent: $hasContentIntent, ')
+          ..write('channelId: $channelId, ')
+          ..write('channelName: $channelName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1282,6 +1490,8 @@ typedef $$NotificationsTableCreateCompanionBuilder =
       Value<bool> isRemoved,
       Value<String?> key,
       Value<bool> hasContentIntent,
+      Value<String?> channelId,
+      Value<String?> channelName,
       Value<int> rowid,
     });
 typedef $$NotificationsTableUpdateCompanionBuilder =
@@ -1296,6 +1506,8 @@ typedef $$NotificationsTableUpdateCompanionBuilder =
       Value<bool> isRemoved,
       Value<String?> key,
       Value<bool> hasContentIntent,
+      Value<String?> channelId,
+      Value<String?> channelName,
       Value<int> rowid,
     });
 
@@ -1355,6 +1567,16 @@ class $$NotificationsTableFilterComposer
 
   ColumnFilters<bool> get hasContentIntent => $composableBuilder(
     column: $table.hasContentIntent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get channelId => $composableBuilder(
+    column: $table.channelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get channelName => $composableBuilder(
+    column: $table.channelName,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1417,6 +1639,16 @@ class $$NotificationsTableOrderingComposer
     column: $table.hasContentIntent,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get channelId => $composableBuilder(
+    column: $table.channelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get channelName => $composableBuilder(
+    column: $table.channelName,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$NotificationsTableAnnotationComposer
@@ -1459,6 +1691,14 @@ class $$NotificationsTableAnnotationComposer
 
   GeneratedColumn<bool> get hasContentIntent => $composableBuilder(
     column: $table.hasContentIntent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get channelId =>
+      $composableBuilder(column: $table.channelId, builder: (column) => column);
+
+  GeneratedColumn<String> get channelName => $composableBuilder(
+    column: $table.channelName,
     builder: (column) => column,
   );
 }
@@ -1508,6 +1748,8 @@ class $$NotificationsTableTableManager
                 Value<bool> isRemoved = const Value.absent(),
                 Value<String?> key = const Value.absent(),
                 Value<bool> hasContentIntent = const Value.absent(),
+                Value<String?> channelId = const Value.absent(),
+                Value<String?> channelName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NotificationsCompanion(
                 id: id,
@@ -1520,6 +1762,8 @@ class $$NotificationsTableTableManager
                 isRemoved: isRemoved,
                 key: key,
                 hasContentIntent: hasContentIntent,
+                channelId: channelId,
+                channelName: channelName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1534,6 +1778,8 @@ class $$NotificationsTableTableManager
                 Value<bool> isRemoved = const Value.absent(),
                 Value<String?> key = const Value.absent(),
                 Value<bool> hasContentIntent = const Value.absent(),
+                Value<String?> channelId = const Value.absent(),
+                Value<String?> channelName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NotificationsCompanion.insert(
                 id: id,
@@ -1546,6 +1792,8 @@ class $$NotificationsTableTableManager
                 isRemoved: isRemoved,
                 key: key,
                 hasContentIntent: hasContentIntent,
+                channelId: channelId,
+                channelName: channelName,
                 rowid: rowid,
               ),
           withReferenceMapper:
@@ -1592,6 +1840,8 @@ typedef $$NotificationHistoryTableCreateCompanionBuilder =
       Value<bool> isRemoved,
       Value<String?> key,
       Value<bool> hasContentIntent,
+      Value<String?> channelId,
+      Value<String?> channelName,
       Value<int> rowid,
     });
 typedef $$NotificationHistoryTableUpdateCompanionBuilder =
@@ -1606,6 +1856,8 @@ typedef $$NotificationHistoryTableUpdateCompanionBuilder =
       Value<bool> isRemoved,
       Value<String?> key,
       Value<bool> hasContentIntent,
+      Value<String?> channelId,
+      Value<String?> channelName,
       Value<int> rowid,
     });
 
@@ -1665,6 +1917,16 @@ class $$NotificationHistoryTableFilterComposer
 
   ColumnFilters<bool> get hasContentIntent => $composableBuilder(
     column: $table.hasContentIntent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get channelId => $composableBuilder(
+    column: $table.channelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get channelName => $composableBuilder(
+    column: $table.channelName,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1727,6 +1989,16 @@ class $$NotificationHistoryTableOrderingComposer
     column: $table.hasContentIntent,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get channelId => $composableBuilder(
+    column: $table.channelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get channelName => $composableBuilder(
+    column: $table.channelName,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$NotificationHistoryTableAnnotationComposer
@@ -1769,6 +2041,14 @@ class $$NotificationHistoryTableAnnotationComposer
 
   GeneratedColumn<bool> get hasContentIntent => $composableBuilder(
     column: $table.hasContentIntent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get channelId =>
+      $composableBuilder(column: $table.channelId, builder: (column) => column);
+
+  GeneratedColumn<String> get channelName => $composableBuilder(
+    column: $table.channelName,
     builder: (column) => column,
   );
 }
@@ -1829,6 +2109,8 @@ class $$NotificationHistoryTableTableManager
                 Value<bool> isRemoved = const Value.absent(),
                 Value<String?> key = const Value.absent(),
                 Value<bool> hasContentIntent = const Value.absent(),
+                Value<String?> channelId = const Value.absent(),
+                Value<String?> channelName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NotificationHistoryCompanion(
                 id: id,
@@ -1841,6 +2123,8 @@ class $$NotificationHistoryTableTableManager
                 isRemoved: isRemoved,
                 key: key,
                 hasContentIntent: hasContentIntent,
+                channelId: channelId,
+                channelName: channelName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1855,6 +2139,8 @@ class $$NotificationHistoryTableTableManager
                 Value<bool> isRemoved = const Value.absent(),
                 Value<String?> key = const Value.absent(),
                 Value<bool> hasContentIntent = const Value.absent(),
+                Value<String?> channelId = const Value.absent(),
+                Value<String?> channelName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NotificationHistoryCompanion.insert(
                 id: id,
@@ -1867,6 +2153,8 @@ class $$NotificationHistoryTableTableManager
                 isRemoved: isRemoved,
                 key: key,
                 hasContentIntent: hasContentIntent,
+                channelId: channelId,
+                channelName: channelName,
                 rowid: rowid,
               ),
           withReferenceMapper:

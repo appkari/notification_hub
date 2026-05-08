@@ -13,6 +13,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Build.VERSION_CODES
 
 class NotiHubNotificationService : NotificationListenerService() {
     companion object {
@@ -132,6 +133,17 @@ class NotiHubNotificationService : NotificationListenerService() {
         val extras = sbn.notification.extras
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        val channelId = if (Build.VERSION.SDK_INT >= VERSION_CODES.O) {
+            sbn.notification.channelId
+        } else {
+            null
+        }
+        val channelName = if (Build.VERSION.SDK_INT >= VERSION_CODES.O && channelId != null) {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.getNotificationChannel(channelId)?.name?.toString()
+        } else {
+            null
+        }
         
         // Store the PendingIntent for later execution
         val contentIntent = sbn.notification.contentIntent
@@ -168,7 +180,9 @@ class NotiHubNotificationService : NotificationListenerService() {
             "tag" to sbn.tag,
             "key" to sbn.key,
             "iconData" to iconData,
-            "hasContentIntent" to (contentIntent != null)
+            "hasContentIntent" to (contentIntent != null),
+            "channelId" to channelId,
+            "channelName" to channelName
         )
         
         // Add extras as a string representation if available
@@ -203,6 +217,17 @@ class NotiHubNotificationService : NotificationListenerService() {
         val extras = sbn.notification.extras
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        val channelId = if (Build.VERSION.SDK_INT >= VERSION_CODES.O) {
+            sbn.notification.channelId
+        } else {
+            null
+        }
+        val channelName = if (Build.VERSION.SDK_INT >= VERSION_CODES.O && channelId != null) {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.getNotificationChannel(channelId)?.name?.toString()
+        } else {
+            null
+        }
         var iconData: String? = null
         try {
             val appInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
@@ -230,7 +255,9 @@ class NotiHubNotificationService : NotificationListenerService() {
             "id" to sbn.id,
             "tag" to sbn.tag,
             "key" to sbn.key,
-            "iconData" to iconData
+            "iconData" to iconData,
+            "channelId" to channelId,
+            "channelName" to channelName
         )
         extras?.keySet()?.forEach { key ->
             extras.get(key)?.let { value ->

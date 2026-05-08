@@ -29,6 +29,8 @@ class NotificationService {
   // Set of excluded package names
   Set<String> _excludedApps = {};
   final String _excludedAppsKey = 'excludedApps'; // Key for SharedPreferences
+  Set<String> _excludedChannels = {};
+  static const String _excludedChannelsKey = 'excludedNotificationChannels';
 
   // Track programmatic removals
   final Set<String> _programmaticallyRemovedKeys = {};
@@ -66,6 +68,7 @@ class NotificationService {
   Future<void> initialize() async {
     debugPrint('NotificationService: Initializing...');
     await _loadExcludedApps(); // Load excluded apps on initialization
+    await _loadExcludedChannels();
     // Load removeSystemTrayNotification setting from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     _removeSystemTrayNotification =
@@ -198,17 +201,30 @@ class NotificationService {
             );
           }
 
-          // Filter out excluded apps (but allow self-notifications that passed the test above)
-          if (!_excludedApps.contains(notification.packageName) ||
-              (notification.packageName == 'in.appkari.notihub' ||
-                  notification.packageName == 'in.appkari.notihub.dev')) {
+          final isSelfNotification =
+              notification.packageName == 'in.appkari.notihub' ||
+              notification.packageName == 'in.appkari.notihub.dev';
+
+          final isChannelExcluded =
+              notification.channelId != null &&
+              _excludedChannels.contains(
+                _channelPreferenceKey(
+                  notification.packageName,
+                  notification.channelId!,
+                ),
+              );
+
+          // Filter out excluded apps/channels (but allow self-notifications that passed the test above)
+          if ((!_excludedApps.contains(notification.packageName) &&
+                  !isChannelExcluded) ||
+              isSelfNotification) {
             debugPrint(
               'NotificationService: Received notification: ${notification.title} from ${notification.packageName}',
             );
             _notificationsStreamController.add(notification);
           } else {
             debugPrint(
-              'NotificationService: Notification from excluded app ${notification.packageName} ignored.',
+              'NotificationService: Notification from excluded source ${notification.packageName}/${notification.channelId} ignored.',
             );
           }
         } catch (e) {
@@ -324,6 +340,29 @@ class NotificationService {
     }
   }
 
+  Future<void> _loadExcludedChannels() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _excludedChannels =
+          prefs.getStringList(_excludedChannelsKey)?.toSet() ?? <String>{};
+    } catch (e) {
+      debugPrint('NotificationService: Error loading excluded channels: $e');
+      _excludedChannels = <String>{};
+    }
+  }
+
+  Future<void> _saveExcludedChannels() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _excludedChannelsKey,
+        _excludedChannels.toList()..sort(),
+      );
+    } catch (e) {
+      debugPrint('NotificationService: Error saving excluded channels: $e');
+    }
+  }
+
   Future<Set<String>> getExcludedApps() async {
     // Only load if not already loaded or empty
     if (_excludedApps.isEmpty) {
@@ -354,6 +393,50 @@ class NotificationService {
       await _saveExcludedApps();
       debugPrint('NotificationService: Included app: $packageName');
     }
+  }
+
+  String excludedChannelKey(String packageName, String channelId) {
+    return _channelPreferenceKey(packageName, channelId);
+  }
+
+  Future<Set<String>> getExcludedChannelKeys() async {
+    if (_excludedChannels.isEmpty) {
+      await _loadExcludedChannels();
+    }
+    return _excludedChannels;
+  }
+
+  Future<bool> isChannelExcluded(String packageName, String channelId) async {
+    if (_excludedChannels.isEmpty) {
+      await _loadExcludedChannels();
+    }
+    return _excludedChannels.contains(
+      _channelPreferenceKey(packageName, channelId),
+    );
+  }
+
+  Future<void> excludeChannel(String packageName, String channelId) async {
+    if (_excludedChannels.add(_channelPreferenceKey(packageName, channelId))) {
+      await _saveExcludedChannels();
+      debugPrint(
+        'NotificationService: Excluded channel: $packageName / $channelId',
+      );
+    }
+  }
+
+  Future<void> includeChannel(String packageName, String channelId) async {
+    if (_excludedChannels.remove(
+      _channelPreferenceKey(packageName, channelId),
+    )) {
+      await _saveExcludedChannels();
+      debugPrint(
+        'NotificationService: Included channel: $packageName / $channelId',
+      );
+    }
+  }
+
+  String _channelPreferenceKey(String packageName, String channelId) {
+    return '$packageName|$channelId';
   }
 
   // Send a test notification (Platform level)
@@ -516,6 +599,54 @@ class NotificationService {
     } on PlatformException catch (e) {
       debugPrint(
         'NotificationService: Failed to launch app $packageName: ${e.message}',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> openAppInfo(String packageName) async {
+    try {
+      final bool? success = await _notificationChannel.invokeMethod(
+        'openAppInfo',
+        {'packageName': packageName},
+      );
+      return success ?? false;
+    } on PlatformException catch (e) {
+      debugPrint(
+        'NotificationService: Failed to open app info for $packageName: ${e.message}',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> openAppNotificationSettings(String packageName) async {
+    try {
+      final bool? success = await _notificationChannel.invokeMethod(
+        'openAppNotificationSettings',
+        {'packageName': packageName},
+      );
+      return success ?? false;
+    } on PlatformException catch (e) {
+      debugPrint(
+        'NotificationService: Failed to open notification settings for $packageName: ${e.message}',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> openChannelNotificationSettings({
+    required String packageName,
+    required String channelId,
+  }) async {
+    try {
+      final bool? success = await _notificationChannel.invokeMethod(
+        'openChannelNotificationSettings',
+        {'packageName': packageName, 'channelId': channelId},
+      );
+      return success ?? false;
+    } on PlatformException catch (e) {
+      debugPrint(
+        'NotificationService: Failed to open channel settings for $packageName/$channelId: ${e.message}',
       );
       return false;
     }
