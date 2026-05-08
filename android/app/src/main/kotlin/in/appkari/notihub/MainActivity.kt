@@ -109,6 +109,31 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_PACKAGE", "Package name is null", null)
                     }
                 }
+                "openAppInfo" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        result.success(openAppInfo(packageName))
+                    } else {
+                        result.error("INVALID_PACKAGE", "Package name is null", null)
+                    }
+                }
+                "openAppNotificationSettings" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        result.success(openAppNotificationSettings(packageName))
+                    } else {
+                        result.error("INVALID_PACKAGE", "Package name is null", null)
+                    }
+                }
+                "openChannelNotificationSettings" -> {
+                    val packageName = call.argument<String>("packageName")
+                    val channelId = call.argument<String>("channelId")
+                    if (packageName != null && channelId != null) {
+                        result.success(openChannelNotificationSettings(packageName, channelId))
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Package name or channel ID is null", null)
+                    }
+                }
                 "executeNotificationAction" -> {
                     val key = call.argument<String>("key")
                     if (key != null) {
@@ -201,6 +226,56 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to launch app $packageName: ${e.message}")
             Log.e("MainActivity", "Exception details: ${e.stackTraceToString()}")
+            false
+        }
+    }
+
+    private fun openAppInfo(packageName: String): Boolean {
+        return try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to open app info for $packageName: ${e.message}")
+            false
+        }
+    }
+
+    private fun openAppNotificationSettings(packageName: String): Boolean {
+        return try {
+            val intent = Intent().apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                putExtra("app_package", packageName)
+                putExtra("app_uid", packageManager.getApplicationInfo(packageName, 0).uid)
+            }
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to open notification settings for $packageName: ${e.message}")
+            false
+        }
+    }
+
+    private fun openChannelNotificationSettings(packageName: String, channelId: String): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    putExtra(Settings.EXTRA_CHANNEL_ID, channelId)
+                }
+                startActivity(intent)
+                true
+            } else {
+                openAppNotificationSettings(packageName)
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to open channel settings for $packageName/$channelId: ${e.message}")
             false
         }
     }

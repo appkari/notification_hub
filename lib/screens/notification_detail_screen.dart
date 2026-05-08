@@ -144,6 +144,14 @@ class NotificationDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _buildDetailRow('Package Name:', notification.packageName),
+            _buildDetailRow(
+              'Channel:',
+              notification.channelName?.isNotEmpty == true
+                  ? notification.channelName!
+                  : (notification.channelId?.isNotEmpty == true
+                      ? notification.channelId!
+                      : 'Uncategorized'),
+            ),
             _buildDetailRow('Notification ID:', notification.id),
             _buildDetailRow(
               'Received at:',

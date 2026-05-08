@@ -166,6 +166,25 @@ class NotificationItemWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if ((notification.channelName?.isNotEmpty ?? false) ||
+                          (notification.channelId?.isNotEmpty ?? false))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            notification.channelName?.isNotEmpty == true
+                                ? notification.channelName!
+                                : notification.channelId!,
+                            style: TextStyle(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       if (notification.title.isNotEmpty)
                         Text(
                           notification.title,

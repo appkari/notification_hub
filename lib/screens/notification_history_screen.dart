@@ -22,7 +22,8 @@ import 'package:flutter/material.dart'
         Text,
         TextStyle,
         Widget,
-        Column;
+        Column,
+        CrossAxisAlignment;
 import 'package:provider/provider.dart' show Consumer;
 import 'dart:convert' show base64Decode;
 import '../providers/notification_provider.dart' show NotificationProvider;
@@ -106,18 +107,71 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                           ),
                           subtitle: Text('${appNotifications.length} cleared'),
                         ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: appNotifications.length,
-                          itemBuilder: (context, idx) {
-                            final notification = appNotifications[idx];
-                            return Opacity(
-                              opacity: 0.5,
-                              child: NotificationItemWidget(
-                                notification: notification,
-                                enableInteractions: false,
-                              ),
+                        Consumer<NotificationProvider>(
+                          builder: (context, provider, _) {
+                            final groupedByChannel = provider
+                                .getNotificationsByChannel(appNotifications);
+                            final channelEntries =
+                                groupedByChannel.entries.toList()..sort((a, b) {
+                                  final channelA =
+                                      provider
+                                          .displayChannelName(a.value.first)
+                                          .toLowerCase();
+                                  final channelB =
+                                      provider
+                                          .displayChannelName(b.value.first)
+                                          .toLowerCase();
+                                  return channelA.compareTo(channelB);
+                                });
+
+                            return Column(
+                              children:
+                                  channelEntries.map((entry) {
+                                    final channelNotifications = entry.value;
+                                    final channelLabel = provider
+                                        .displayChannelName(
+                                          channelNotifications.first,
+                                        );
+
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            4,
+                                            16,
+                                            0,
+                                          ),
+                                          child: Text(
+                                            '$channelLabel (${channelNotifications.length})',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        ListView.builder(
+                                          shrinkWrap: true,
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          itemCount:
+                                              channelNotifications.length,
+                                          itemBuilder: (context, idx) {
+                                            final notification =
+                                                channelNotifications[idx];
+                                            return Opacity(
+                                              opacity: 0.5,
+                                              child: NotificationItemWidget(
+                                                notification: notification,
+                                                enableInteractions: false,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
                             );
                           },
                         ),
