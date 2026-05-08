@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart'
     show
         ChangeNotifier,
         debugPrint; // Already uses show, no change needed but included for completeness of the block
-import '../models/notification_model.dart' show AppNotification;
+import '../models/notification_model.dart'
+    show AppNotification, NotificationChannelInfo;
 import '../services/notification_service.dart' show NotificationService;
 import '../services/icon_cache_service.dart' show IconCacheService;
 import '../database/app_database.dart'
@@ -288,6 +289,31 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Set<String>> getExcludedChannelKeys() async {
+    return await _notificationService.getExcludedChannelKeys();
+  }
+
+  Future<bool> isChannelExcluded(String packageName, String channelId) async {
+    return await _notificationService.isChannelExcluded(packageName, channelId);
+  }
+
+  Future<void> setChannelEnabled({
+    required String packageName,
+    required String channelId,
+    required bool enabled,
+  }) async {
+    if (enabled) {
+      await _notificationService.includeChannel(packageName, channelId);
+    } else {
+      await _notificationService.excludeChannel(packageName, channelId);
+      await clearChannelNotifications(
+        packageName: packageName,
+        channelId: channelId,
+      );
+    }
+    notifyListeners();
+  }
+
   // Add pagination support
   Future<List<AppNotification>> getPaginatedNotifications(
     int page,
@@ -331,6 +357,32 @@ class NotificationProvider with ChangeNotifier {
 
     // Remove from active notifications
     _notifications.removeWhere((n) => n.packageName == packageName);
+    _updatePersistentSummaryNotification();
+    notifyListeners();
+  }
+
+  Future<void> clearChannelNotifications({
+    required String packageName,
+    required String channelId,
+  }) async {
+    final channelNotifications =
+        _notifications
+            .where(
+              (n) => n.packageName == packageName && n.channelId == channelId,
+            )
+            .toList();
+
+    await _archiveNotifications(channelNotifications);
+    for (final notification in channelNotifications) {
+      await _notificationService.removeNotificationFromSystemTray(
+        notification.key,
+      );
+      await _store.deleteNotification(notification.id);
+    }
+
+    _notifications.removeWhere(
+      (n) => n.packageName == packageName && n.channelId == channelId,
+    );
     _updatePersistentSummaryNotification();
     notifyListeners();
   }
@@ -398,6 +450,66 @@ class NotificationProvider with ChangeNotifier {
     return groupedNotifications;
   }
 
+  Map<String, List<AppNotification>> getNotificationsByChannel(
+    List<AppNotification> notifications,
+  ) {
+    final groupedNotifications = <String, List<AppNotification>>{};
+
+    for (final notification in notifications) {
+      final channelKey = notification.channelId ?? '__uncategorized__';
+      groupedNotifications.putIfAbsent(channelKey, () => []).add(notification);
+    }
+
+    groupedNotifications.forEach((key, list) {
+      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    });
+
+    return groupedNotifications;
+  }
+
+  List<NotificationChannelInfo> getKnownNotificationChannels() {
+    final channels = <String, NotificationChannelInfo>{};
+
+    void collect(AppNotification notification) {
+      final channelId = notification.channelId;
+      if (channelId == null || channelId.isEmpty) {
+        return;
+      }
+
+      final storageKey = '${notification.packageName}|$channelId';
+      final existing = channels[storageKey];
+      channels[storageKey] = NotificationChannelInfo(
+        packageName: notification.packageName,
+        appName: notification.appName,
+        channelId: channelId,
+        channelName: _displayChannelName(notification),
+        notificationCount: (existing?.notificationCount ?? 0) + 1,
+        iconData: existing?.iconData ?? notification.iconData,
+      );
+    }
+
+    for (final notification in _notifications) {
+      collect(notification);
+    }
+    for (final notification in _notificationHistory) {
+      collect(notification);
+    }
+
+    final result =
+        channels.values.toList()..sort((a, b) {
+          final appCompare = a.appName.toLowerCase().compareTo(
+            b.appName.toLowerCase(),
+          );
+          if (appCompare != 0) {
+            return appCompare;
+          }
+          return a.channelName.toLowerCase().compareTo(
+            b.channelName.toLowerCase(),
+          );
+        });
+    return result;
+  }
+
   void setLoadingMore(bool value) {
     _isLoadingMore = value;
     notifyListeners();
@@ -455,6 +567,24 @@ class NotificationProvider with ChangeNotifier {
     return await _notificationService.launchApp(packageName);
   }
 
+  Future<bool> openAppInfo(String packageName) async {
+    return await _notificationService.openAppInfo(packageName);
+  }
+
+  Future<bool> openAppNotificationSettings(String packageName) async {
+    return await _notificationService.openAppNotificationSettings(packageName);
+  }
+
+  Future<bool> openChannelNotificationSettings({
+    required String packageName,
+    required String channelId,
+  }) async {
+    return await _notificationService.openChannelNotificationSettings(
+      packageName: packageName,
+      channelId: channelId,
+    );
+  }
+
   // Execute the original notification action
   Future<bool> executeNotificationAction(String? key) async {
     return await _notificationService.executeNotificationAction(key);
@@ -494,6 +624,8 @@ class NotificationProvider with ChangeNotifier {
         isRemoved: Value(notification.isRemoved),
         key: Value(notification.key),
         hasContentIntent: Value(notification.hasContentIntent),
+        channelId: Value(notification.channelId),
+        channelName: Value(notification.channelName),
       ),
     );
     await _store.deleteHistory(notification.id);
@@ -519,6 +651,8 @@ class NotificationProvider with ChangeNotifier {
     isRemoved: n.isRemoved,
     key: n.key,
     hasContentIntent: n.hasContentIntent,
+    channelId: n.channelId,
+    channelName: n.channelName,
   );
   AppNotification _fromDbNotificationHistory(NotificationHistoryData n) =>
       AppNotification(
@@ -532,6 +666,8 @@ class NotificationProvider with ChangeNotifier {
         isRemoved: n.isRemoved,
         key: n.key,
         hasContentIntent: n.hasContentIntent,
+        channelId: n.channelId,
+        channelName: n.channelName,
       );
 
   // Helper to convert AppNotification to NotificationsCompanion
@@ -547,6 +683,8 @@ class NotificationProvider with ChangeNotifier {
       isRemoved: Value(notification.isRemoved),
       key: Value(notification.key),
       hasContentIntent: Value(notification.hasContentIntent),
+      channelId: Value(notification.channelId),
+      channelName: Value(notification.channelName),
     );
   }
 
@@ -563,7 +701,51 @@ class NotificationProvider with ChangeNotifier {
       isRemoved: Value(notification.isRemoved),
       key: Value(notification.key),
       hasContentIntent: Value(notification.hasContentIntent),
+      channelId: Value(notification.channelId),
+      channelName: Value(notification.channelName),
     );
+  }
+
+  String displayChannelName(AppNotification notification) {
+    return _displayChannelName(notification);
+  }
+
+  String _displayChannelName(AppNotification notification) {
+    final name = notification.channelName?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    final id = notification.channelId?.trim();
+    if (id != null && id.isNotEmpty) {
+      return _prettifyChannelId(id);
+    }
+
+    return 'Uncategorized';
+  }
+
+  String _prettifyChannelId(String value) {
+    final normalized =
+        value
+            .replaceAll(RegExp(r'[_\-.]+'), ' ')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+    if (normalized.isEmpty) {
+      return value;
+    }
+
+    return normalized
+        .split(' ')
+        .map((part) {
+          if (part.isEmpty) {
+            return part;
+          }
+          if (part.length == 1) {
+            return part.toUpperCase();
+          }
+          return '${part[0].toUpperCase()}${part.substring(1)}';
+        })
+        .join(' ');
   }
 
   void _updatePersistentSummaryNotification() {

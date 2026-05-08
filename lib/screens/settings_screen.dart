@@ -25,12 +25,14 @@ import 'package:flutter/material.dart'
         SnackBar,
         StatefulWidget,
         Switch,
+        SafeArea,
         Text,
         TextButton,
         ValueKey,
         Widget,
         showAboutDialog,
         showDialog,
+        showModalBottomSheet,
         DropdownButton,
         DropdownMenuItem,
         SwitchListTile,
@@ -41,7 +43,8 @@ import 'package:flutter/material.dart'
         BoxDecoration,
         BorderRadius,
         FontWeight,
-        TextStyle;
+        TextStyle,
+        MainAxisSize;
 import 'package:provider/provider.dart' show Consumer;
 import 'package:notification_listener_service/notification_listener_service.dart'
     show NotificationListenerService;
@@ -51,6 +54,7 @@ import '../providers/notification_provider.dart' show NotificationProvider;
 import '../providers/subscription_provider.dart' show SubscriptionProvider;
 import '../services/notification_service.dart' show NotificationService;
 import '../providers/theme_provider.dart';
+import '../models/notification_model.dart' show NotificationChannelInfo;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -444,6 +448,194 @@ class SettingsScreenState extends State<SettingsScreen> {
                                 },
                               ),
                             ),
+                          );
+                        }).toList(),
+                  );
+                },
+              ),
+
+              const Divider(),
+
+              FutureBuilder<Set<String>>(
+                future: provider.getExcludedChannelKeys(),
+                builder: (context, excludedSnapshot) {
+                  final excludedChannels = excludedSnapshot.data ?? <String>{};
+                  final channels = provider.getKnownNotificationChannels();
+
+                  if (channels.isEmpty) {
+                    return const ListTile(
+                      title: Text('Notification Channels'),
+                      subtitle: Text(
+                        'Channels will appear here after notifications are captured.',
+                      ),
+                    );
+                  }
+
+                  final groupedChannels =
+                      <String, List<NotificationChannelInfo>>{};
+                  for (final channel in channels) {
+                    groupedChannels
+                        .putIfAbsent(channel.packageName, () => [])
+                        .add(channel);
+                  }
+
+                  final appEntries =
+                      groupedChannels.entries.toList()..sort(
+                        (a, b) => a.value.first.appName.toLowerCase().compareTo(
+                          b.value.first.appName.toLowerCase(),
+                        ),
+                      );
+
+                  return ExpansionTile(
+                    title: const Text('Notification Channels'),
+                    subtitle: Text(
+                      '${channels.length} tracked channel${channels.length == 1 ? '' : 's'}',
+                    ),
+                    children:
+                        appEntries.map((entry) {
+                          final appChannels =
+                              entry.value..sort(
+                                (a, b) => a.channelName.toLowerCase().compareTo(
+                                  b.channelName.toLowerCase(),
+                                ),
+                              );
+
+                          return ExpansionTile(
+                            title: Text(appChannels.first.appName),
+                            subtitle: Text(
+                              '${appChannels.length} channel${appChannels.length == 1 ? '' : 's'}',
+                            ),
+                            children:
+                                appChannels.map((channel) {
+                                  final isEnabled =
+                                      !excludedChannels.contains(
+                                        channel.storageKey,
+                                      );
+
+                                  return ListTile(
+                                    title: Text(channel.channelName),
+                                    subtitle: Text(
+                                      '${channel.notificationCount} notification${channel.notificationCount == 1 ? '' : 's'}',
+                                    ),
+                                    onTap: () async {
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
+                                      final success = await provider
+                                          .openChannelNotificationSettings(
+                                            packageName: channel.packageName,
+                                            channelId: channel.channelId,
+                                          );
+                                      if (!mounted || success) return;
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Could not open settings for ${channel.channelName}',
+                                          ),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                    onLongPress: () async {
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
+                                      await showModalBottomSheet<void>(
+                                        context: context,
+                                        builder: (sheetContext) {
+                                          return SafeArea(
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                ListTile(
+                                                  leading: const Icon(
+                                                    Icons.block_outlined,
+                                                  ),
+                                                  title: const Text(
+                                                    'Exclude channel',
+                                                  ),
+                                                  subtitle: Text(
+                                                    channel.channelName,
+                                                  ),
+                                                  onTap: () async {
+                                                    Navigator.pop(sheetContext);
+                                                    await provider
+                                                        .setChannelEnabled(
+                                                          packageName:
+                                                              channel
+                                                                  .packageName,
+                                                          channelId:
+                                                              channel.channelId,
+                                                          enabled: false,
+                                                        );
+                                                    if (!mounted) return;
+                                                    setState(() {});
+                                                    messenger.showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          '${channel.channelName} will be ignored',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                                ListTile(
+                                                  leading: const Icon(
+                                                    Icons
+                                                        .notifications_outlined,
+                                                  ),
+                                                  title: const Text(
+                                                    'Notification settings',
+                                                  ),
+                                                  subtitle: Text(
+                                                    channel.channelName,
+                                                  ),
+                                                  onTap: () async {
+                                                    Navigator.pop(sheetContext);
+                                                    final success = await provider
+                                                        .openChannelNotificationSettings(
+                                                          packageName:
+                                                              channel
+                                                                  .packageName,
+                                                          channelId:
+                                                              channel.channelId,
+                                                        );
+                                                    if (!mounted || success) {
+                                                      return;
+                                                    }
+                                                    messenger.showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Could not open settings for ${channel.channelName}',
+                                                        ),
+                                                        duration:
+                                                            const Duration(
+                                                              seconds: 2,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                    trailing: Switch(
+                                      value: isEnabled,
+                                      onChanged: (value) async {
+                                        await provider.setChannelEnabled(
+                                          packageName: channel.packageName,
+                                          channelId: channel.channelId,
+                                          enabled: value,
+                                        );
+                                        if (!mounted) return;
+                                        setState(() {});
+                                      },
+                                    ),
+                                  );
+                                }).toList(),
                           );
                         }).toList(),
                   );

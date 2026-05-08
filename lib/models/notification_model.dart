@@ -11,6 +11,8 @@ class AppNotification {
   final bool isRemoved;
   final String? key; // Android notification key for system tray removal
   final bool hasContentIntent; // Whether the notification has a specific action
+  final String? channelId;
+  final String? channelName;
 
   AppNotification({
     required this.id,
@@ -23,6 +25,8 @@ class AppNotification {
     this.isRemoved = false,
     this.key,
     this.hasContentIntent = false,
+    this.channelId,
+    this.channelName,
   });
 
   factory AppNotification.fromMap(Map<String, dynamic> map) {
@@ -39,6 +43,8 @@ class AppNotification {
       isRemoved: map['isRemoved'] ?? false,
       key: map['key'],
       hasContentIntent: map['hasContentIntent'] ?? false,
+      channelId: map['channelId']?.toString(),
+      channelName: map['channelName']?.toString(),
     );
   }
 
@@ -54,6 +60,8 @@ class AppNotification {
       'isRemoved': isRemoved,
       'key': key,
       'hasContentIntent': hasContentIntent,
+      'channelId': channelId,
+      'channelName': channelName,
     };
   }
 
@@ -68,6 +76,8 @@ class AppNotification {
     bool? isRemoved,
     String? key,
     bool? hasContentIntent,
+    String? channelId,
+    String? channelName,
   }) {
     return AppNotification(
       id: id ?? this.id,
@@ -80,6 +90,28 @@ class AppNotification {
       isRemoved: isRemoved ?? this.isRemoved,
       key: key ?? this.key,
       hasContentIntent: hasContentIntent ?? this.hasContentIntent,
+      channelId: channelId ?? this.channelId,
+      channelName: channelName ?? this.channelName,
     );
   }
+}
+
+class NotificationChannelInfo {
+  const NotificationChannelInfo({
+    required this.packageName,
+    required this.appName,
+    required this.channelId,
+    required this.channelName,
+    required this.notificationCount,
+    this.iconData,
+  });
+
+  final String packageName;
+  final String appName;
+  final String channelId;
+  final String channelName;
+  final int notificationCount;
+  final String? iconData;
+
+  String get storageKey => '$packageName|$channelId';
 }
