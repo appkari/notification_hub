@@ -1,0 +1,59 @@
+name: Build & Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create key.properties
+        run: |
+          echo "${{ secrets.KEYSTORE_PROPERTIES }}" | base64 -d > android/key.properties
+
+      - name: Create signing keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > android/app/key.jks
+
+      - name: Build APK
+        run: flutter build apk --flavor production -t lib/main_production.dart --release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-production-release.apk
+          body: |
+            Automatic release build for ${{ github.ref_name }}
+
+            **How to use:**
+            1. Download the APK file
+            2. Install on your Android device
+            3. For code updates, use: `shorebird release android`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: notification-hub-apk
+          path: build/app/outputs/flutter-apk/app-production-release.apk

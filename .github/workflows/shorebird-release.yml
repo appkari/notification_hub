@@ -1,0 +1,39 @@
+name: Shorebird Code Push Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Release environment'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+
+jobs:
+  shorebird-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Install Shorebird
+        run: |
+          dart pub global activate shorebird_cli
+
+      - name: Authenticate Shorebird
+        run: |
+          shorebird auth firebase-token --stdin <<< "${{ secrets.FIREBASE_TOKEN }}"
+
+      - name: Release with Shorebird
+        run: |
+          shorebird release ${{ github.event.inputs.environment }}
