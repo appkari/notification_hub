@@ -1,0 +1,66 @@
+name: Release (Prod)
+
+on:
+  push:
+    tags:
+      - 'prod@*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create key.properties
+        run: echo "${{ secrets.KEYSTORE_PROPERTIES }}" | base64 -d > android/key.properties
+
+      - name: Create signing keystore
+        run: echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > android/app/key.jks
+
+      - name: Build APK (production flavor)
+        run: flutter build apk --flavor production -t lib/main_production.dart --release
+
+      - name: Build AAB for Play Store (production flavor)
+        run: flutter build appbundle --flavor production -t lib/main_production.dart --release
+
+      - name: Create Play Store credentials
+        run: echo "${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}" | base64 -d > android/play-store-key.json
+
+      - name: Deploy to Play Store (internal)
+        run: |
+          gem install fastlane
+          fastlane run upload_to_play_store \
+            aab:build/app/outputs/bundle/productionRelease/app-production-release.aab \
+            json_key:android/play-store-key.json \
+            package_name:in.appkari.notihub \
+            track:internal \
+            skip_upload_screenshots:true \
+            skip_upload_images:true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-production-release.apk
+          body: |
+            **Production build** — ${{ github.ref_name }}
+            Flavor: production (`in.appkari.notihub`)
+            Play Store: Uploaded to internal testing
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

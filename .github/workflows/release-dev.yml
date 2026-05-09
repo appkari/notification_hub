@@ -1,0 +1,47 @@
+name: Release (Dev)
+
+on:
+  push:
+    tags:
+      - 'dev@*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create key.properties
+        run: echo "${{ secrets.KEYSTORE_PROPERTIES }}" | base64 -d > android/key.properties
+
+      - name: Create signing keystore
+        run: echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > android/app/key.jks
+
+      - name: Build APK (development flavor)
+        run: flutter build apk --flavor development -t lib/main_development.dart --release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-development-release.apk
+          prerelease: true
+          body: |
+            **Dev build** — ${{ github.ref_name }}
+            Flavor: development (`in.appkari.notihub.dev`)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
