@@ -61,12 +61,11 @@ jobs:
             skip_upload_images:true
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: build/app/outputs/flutter-apk/app-production-release.apk
+          make_latest: true
           body: |
             **Production build** — ${{ github.ref_name }}
             Flavor: production (`in.appkari.notihub`)
             Play Store: Uploaded to internal testing
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
