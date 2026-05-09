@@ -45,9 +45,17 @@ jobs:
       - name: Create Play Store credentials
         run: echo "${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}" | base64 -d > android/play-store-key.json
 
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install fastlane
+        run: gem install fastlane --user-install
+
       - name: Deploy to Play Store (internal)
         run: |
-          gem install fastlane
+          export PATH="$HOME/.gem/ruby/3.2.0/bin:$PATH"
           fastlane run upload_to_play_store \
             aab:build/app/outputs/bundle/productionRelease/app-production-release.aab \
             json_key:android/play-store-key.json \
