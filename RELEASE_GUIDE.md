@@ -35,10 +35,11 @@ For major releases, updates to native code, or new app store submissions.
    cat notification-hub-release.jks | base64
    ```
    
-   **PLAY_STORE_SERVICE_ACCOUNT** (base64 encoded Play Store key)
-   ```bash
-   cat ~/Downloads/play-store-service-account.json | base64
-   ```
+    **PLAY_STORE_SERVICE_ACCOUNT** (base64 encoded Play Store key)
+    ```bash
+    cat ~/Downloads/play-store-service-account.json | base64
+    ```
+    > ⚠️ After adding the secret, **grant the service account access in Google Play Console**: Go to Play Console → Users & Permissions → Invite new user, add the service account email (from `client_email` in the JSON), and assign at minimum a **"Release"** permission. Without this, CI will fail with `Google Api Error: The caller does not have permission`.
 
 ### Creating a Release
 
