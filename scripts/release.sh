@@ -51,7 +51,7 @@ if [ "$ENV" == "prod" ]; then
       echo -e "${YELLOW}   Resolve by rebasing dev onto main first, then retry.${NC}"
       exit 1
     }
-    echo -e "${GREEN}✅ Fast-forwarded main → dev${NC}"
+    echo -e "${GREEN}✅ Fast-forwarded dev → main${NC}"
   fi
 fi
 
