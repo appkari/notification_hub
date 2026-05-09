@@ -52,13 +52,23 @@ jobs:
 
       - name: Deploy to Play Store (internal)
         run: |
-          fastlane run upload_to_play_store \
+          set +e
+          output=$(fastlane run upload_to_play_store \
             aab:build/app/outputs/bundle/productionRelease/app-production-release.aab \
             json_key:android/play-store-key.json \
             package_name:in.appkari.notihub \
             track:internal \
             skip_upload_screenshots:true \
-            skip_upload_images:true
+            skip_upload_images:true 2>&1)
+          exit_code=$?
+          echo "$output"
+          if [ $exit_code -ne 0 ]; then
+            if echo "$output" | grep -q "has already been used"; then
+              echo "::notice::Version code already uploaded — treating as success."
+            else
+              exit $exit_code
+            fi
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
