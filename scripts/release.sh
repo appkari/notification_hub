@@ -88,14 +88,21 @@ fi
 
 echo ""
 echo -e "${BLUE}Step 1: Updating pubspec.yaml${NC}"
-sed -i '' "s/^version: .*/version: $VERSION+$NEW_BUILD/" pubspec.yaml
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  sed -i '' "s/^version: .*/version: $VERSION+$NEW_BUILD/" pubspec.yaml
+else
+  sed -i "s/^version: .*/version: $VERSION+$NEW_BUILD/" pubspec.yaml
+fi
 echo -e "${GREEN}✅ Version → $VERSION+$NEW_BUILD${NC}"
 
 echo ""
 echo -e "${BLUE}Step 2: Committing${NC}"
 git add pubspec.yaml
-git commit -m "chore: bump to $VERSION ($ENV)" || echo -e "${YELLOW}⚠️  Nothing to commit${NC}"
-echo -e "${GREEN}✅ Committed${NC}"
+if git commit -m "chore: bump to $VERSION ($ENV)"; then
+  echo -e "${GREEN}✅ Committed${NC}"
+else
+  echo -e "${YELLOW}⚠️  Nothing to commit${NC}"
+fi
 
 echo ""
 echo -e "${BLUE}Step 3: Tagging as $TAG${NC}"

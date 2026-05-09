@@ -36,33 +36,39 @@ For major releases, updates to native code, or new app store submissions.
    
    **PLAY_STORE_SERVICE_ACCOUNT** (base64 encoded Play Store key)
    ```bash
-   cat ~/Downloads/appkari-addeb8c9d108.json | base64
+   cat ~/Downloads/play-store-service-account.json | base64
    ```
 
 ### Creating a Release
 
-1. **Tag your release**
+1. **Tag your release using the helper script (recommended):**
    ```bash
-   git tag v1.0.2
-   git push origin v1.0.2
+   # For a dev release (any branch):
+   ./scripts/release.sh dev
+
+   # For a prod release (must be on main):
+   ./scripts/release.sh prod
+   ```
+
+   Or create the tag manually:
+   ```bash
+   # Dev release:
+   git tag dev@1.0.2
+   git push origin dev@1.0.2
+
+   # Prod release (from main):
+   git tag prod@1.0.2
+   git push origin prod@1.0.2
    ```
 
 2. **GitHub Actions will automatically:**
    - Build the APK & AAB (App Bundle)
-   - Deploy to Play Store (internal testing by default)
+   - Deploy to Play Store internal testing (prod tags only)
    - Create a GitHub Release with the APK
 
-3. **To deploy to different tracks:**
-   - **Internal testing** (default): `git push origin v1.0.2`
-   - **Closed testing**: Manually trigger with track selection
-   - **Open testing**: Manually trigger with track selection
-   - **Production**: Manually trigger with track selection
-
-4. **Manual trigger to choose track:**
-   ```bash
-   # Go to Actions > Build & Release APK > Run workflow
-   # Select the track: internal, alpha, beta, or production
-   ```
+3. **Play Store track:**
+   - Prod releases are automatically uploaded to the **internal testing** track.
+   - To promote to a wider track (alpha, beta, production), use the Play Console directly after the internal release is verified.
 
 ---
 
@@ -119,8 +125,7 @@ shorebird release android
 # Make code changes
 git add .
 git commit -m "feat: new dashboard"
-git tag v1.1.0
-git push origin v1.1.0
+./scripts/release.sh prod  # Bumps version, tags prod@1.1.0, pushes
 # GitHub Actions builds APK → Release created
 # Users download new version from app store/GitHub
 ```
@@ -136,8 +141,7 @@ git commit -m "fix: crash in settings"
 shorebird release android  # Users get second update
 
 # When ready for major release
-git tag v1.1.0
-git push origin v1.1.0  # GitHub builds new APK base
+./scripts/release.sh prod  # Bumps version, tags prod@1.1.0, and pushes
 ```
 
 ---
