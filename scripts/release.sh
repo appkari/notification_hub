@@ -35,9 +35,9 @@ if [ "$ENV" == "prod" ]; then
   if [ "$CURRENT_BRANCH" != "main" ]; then
     echo ""
     echo -e "${YELLOW}⚠️  Prod release requires main branch (currently on: $CURRENT_BRANCH)${NC}"
-    read -p "Forward-merge dev → main and switch? (y/n) " -n 1 -r
+    read -p "Forward-merge dev → main and switch? (Y/n) " -n 1 -r
     echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
       echo -e "${RED}❌ Release cancelled${NC}"
       exit 1
     fi
@@ -79,20 +79,21 @@ echo -e "New version : ${GREEN}$VERSION+$NEW_BUILD${NC}"
 echo -e "Tag         : ${GREEN}$TAG${NC}"
 echo ""
 
-read -p "Proceed? (y/n) " -n 1 -r
+read -p "Proceed? (Y/n) " -n 1 -r
 echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [[ $REPLY =~ ^[Nn]$ ]]; then
   echo -e "${RED}❌ Release cancelled${NC}"
   exit 1
 fi
 
 echo ""
 echo -e "${BLUE}Step 1: Updating pubspec.yaml${NC}"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  sed -i '' "s/^version: .*/version: $VERSION+$NEW_BUILD/" pubspec.yaml
-else
-  sed -i "s/^version: .*/version: $VERSION+$NEW_BUILD/" pubspec.yaml
-fi
+TMP_PUBSPEC=$(mktemp)
+awk -v version="$VERSION+$NEW_BUILD" '
+  /^version:/ { $0 = "version: " version }
+  { print }
+' pubspec.yaml > "$TMP_PUBSPEC"
+mv "$TMP_PUBSPEC" pubspec.yaml
 echo -e "${GREEN}✅ Version → $VERSION+$NEW_BUILD${NC}"
 
 echo ""
