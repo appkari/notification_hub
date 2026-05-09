@@ -16,13 +16,14 @@ For major releases, updates to native code, or new app store submissions.
    - Go to: `Settings > Secrets and variables > Actions > New repository secret`
    - Add these secrets:
 
-   **KEYSTORE_PROPERTIES** (base64 encoded content of `android/key.properties`)
-   ```properties
-   storeFile=key.jks
-   storePassword=YOUR_PASSWORD
-   keyAlias=notification-hub
-   keyPassword=YOUR_PASSWORD
-   ```
+    **KEYSTORE_PROPERTIES** (base64 encoded content of `android/key.properties`)
+    ```properties
+    storeFile=key.jks
+    storePassword=YOUR_PASSWORD
+    keyAlias=notification-hub
+    keyPassword=YOUR_PASSWORD
+    ```
+    > ⚠️ **IMPORTANT**: The `keyAlias` value **must match** the alias used when creating the keystore with `keytool`. A mismatch will cause the CI build to fail with `KeytoolException: No key with alias 'X' found in keystore`.
    
    To create the base64 string:
    ```bash
