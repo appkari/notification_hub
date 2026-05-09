@@ -70,10 +70,11 @@ class SubscriptionModel {
   }
 
   factory SubscriptionModel.fromJson(Map<String, dynamic> json) {
+    // Handle legacy subscription_data format with backward compatibility
     return SubscriptionModel(
-      id: json['id'] as String,
-      productId: json['productId'] as String,
-      status: SubscriptionStatus.values[json['status'] as int],
+      id: json['id'] as String? ?? 'unknown',
+      productId: json['productId'] as String? ?? 'unknown',
+      status: _parseSubscriptionStatus(json['status']),
       startDate:
           json['startDate'] != null
               ? DateTime.fromMillisecondsSinceEpoch(json['startDate'] as int)
@@ -88,11 +89,29 @@ class SubscriptionModel {
                 json['nextBillingDate'] as int,
               )
               : null,
-      price: (json['price'] as num).toDouble(),
-      currency: json['currency'] as String,
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      currency: json['currency'] as String? ?? 'INR',
       isTrialPeriod: json['isTrialPeriod'] as bool? ?? false,
       trialDaysRemaining: json['trialDaysRemaining'] as int? ?? 0,
     );
+  }
+
+  static SubscriptionStatus _parseSubscriptionStatus(dynamic status) {
+    if (status == null) return SubscriptionStatus.free;
+    if (status is int) {
+      return status < SubscriptionStatus.values.length
+          ? SubscriptionStatus.values[status]
+          : SubscriptionStatus.free;
+    }
+    if (status is String) {
+      try {
+        return SubscriptionStatus.values
+            .firstWhere((e) => e.toString().split('.').last == status);
+      } catch (e) {
+        return SubscriptionStatus.free;
+      }
+    }
+    return SubscriptionStatus.free;
   }
 
   static SubscriptionModel get defaultFree => const SubscriptionModel(

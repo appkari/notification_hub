@@ -314,11 +314,9 @@ class AppNotificationCardState extends State<AppNotificationCard> {
         padding: const EdgeInsets.only(right: 24.0),
         child: const Icon(Icons.delete, color: Colors.white, size: 32),
       ),
-      onDismissed: (direction) async {
+      onDismissed: (direction) {
         final messenger = ScaffoldMessenger.of(context);
-        if (widget.onDismissed != null) {
-          await Future.sync(widget.onDismissed!);
-        }
+        widget.onDismissed?.call();
         if (!mounted) return;
         messenger.showSnackBar(
           SnackBar(content: Text('All notifications for $appName cleared')),
