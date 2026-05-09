@@ -2,7 +2,7 @@
 
 This app uses a two-tier release strategy:
 
-## 1. Base Release (APK) - GitHub Actions
+## 1. Base Release (APK + Play Store) - GitHub Actions
 
 For major releases, updates to native code, or new app store submissions.
 
@@ -33,6 +33,11 @@ For major releases, updates to native code, or new app store submissions.
    ```bash
    cat notification-hub-release.jks | base64
    ```
+   
+   **PLAY_STORE_SERVICE_ACCOUNT** (base64 encoded Play Store key)
+   ```bash
+   cat ~/Downloads/appkari-addeb8c9d108.json | base64
+   ```
 
 ### Creating a Release
 
@@ -43,11 +48,21 @@ For major releases, updates to native code, or new app store submissions.
    ```
 
 2. **GitHub Actions will automatically:**
-   - Build the APK
-   - Create a GitHub Release
-   - Upload the APK as an artifact
+   - Build the APK & AAB (App Bundle)
+   - Deploy to Play Store (internal testing by default)
+   - Create a GitHub Release with the APK
 
-3. **Download and distribute** the APK from the GitHub Release
+3. **To deploy to different tracks:**
+   - **Internal testing** (default): `git push origin v1.0.2`
+   - **Closed testing**: Manually trigger with track selection
+   - **Open testing**: Manually trigger with track selection
+   - **Production**: Manually trigger with track selection
+
+4. **Manual trigger to choose track:**
+   ```bash
+   # Go to Actions > Build & Release APK > Run workflow
+   # Select the track: internal, alpha, beta, or production
+   ```
 
 ---
 
