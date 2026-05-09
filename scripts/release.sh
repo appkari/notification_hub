@@ -43,11 +43,15 @@ if [ "$ENV" == "prod" ]; then
     fi
 
     echo ""
-    echo -e "${BLUE}Merging dev → main...${NC}"
+    echo -e "${BLUE}Fast-forward merging dev → main...${NC}"
     git fetch origin
     git checkout main
-    git merge --no-edit origin/dev
-    echo -e "${GREEN}✅ Merged dev → main${NC}"
+    git merge --ff-only origin/dev || {
+      echo -e "${RED}❌ Fast-forward not possible — main has diverged from dev.${NC}"
+      echo -e "${YELLOW}   Resolve by rebasing dev onto main first, then retry.${NC}"
+      exit 1
+    }
+    echo -e "${GREEN}✅ Fast-forwarded main → dev${NC}"
   fi
 fi
 
