@@ -122,7 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
           return const NotificationListView();
         },
       ),
-
     );
   }
 
@@ -132,5 +131,4 @@ class _HomeScreenState extends State<HomeScreen> {
   // Widget _buildDefaultIcon() {...}
   // Widget _buildNotificationCard({...}) {...}
   // Widget _buildNotificationItem(AppNotification notification) {...}
-
 }
