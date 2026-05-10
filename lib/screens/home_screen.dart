@@ -1,41 +1,18 @@
 import 'package:flutter/material.dart'
     show
-        AlertDialog,
-        AlwaysStoppedAnimation,
         AppBar,
-        BorderRadius,
-        BorderSide,
         BuildContext,
-        Builder,
-        CircularProgressIndicator,
-        Color,
-        Colors,
-        EdgeInsets,
-        Expanded,
-        FloatingActionButton,
-        FontWeight,
         Icon,
         IconButton,
         Icons,
         MaterialPageRoute,
         Navigator,
-        RoundedRectangleBorder,
-        Row,
         Scaffold,
-        ScaffoldMessenger,
-        SizedBox,
-        SnackBar,
-        SnackBarAction,
-        SnackBarBehavior,
         State,
         StatefulWidget,
         Text,
-        TextButton,
-        TextStyle,
-        Widget,
-        debugPrint,
-        showDialog;
-import 'package:provider/provider.dart' show Consumer, Provider;
+        Widget;
+import 'package:provider/provider.dart' show Consumer;
 
 import '../providers/notification_provider.dart' show NotificationProvider;
 import '../widgets/empty_state.dart' show EmptyState;
@@ -108,12 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            onPressed: () {
-              _confirmClearNotifications(context);
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Notification History',
             onPressed: () {
@@ -151,14 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return const NotificationListView();
         },
       ),
-      floatingActionButton: Builder(
-        builder:
-            (context) => FloatingActionButton.extended(
-              icon: const Icon(Icons.clear_all),
-              label: const Text('Clear All Notifications'),
-              onPressed: () => _confirmClearNotifications(context),
-            ),
-      ),
+
     );
   }
 
@@ -169,32 +133,4 @@ class _HomeScreenState extends State<HomeScreen> {
   // Widget _buildNotificationCard({...}) {...}
   // Widget _buildNotificationItem(AppNotification notification) {...}
 
-  void _confirmClearNotifications(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Clear All Notifications'),
-            content: const Text(
-              'Are you sure you want to clear all notifications?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Provider.of<NotificationProvider>(
-                    context,
-                    listen: false,
-                  ).clearAllNotifications();
-                  Navigator.pop(context);
-                },
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
-    );
-  }
 }
