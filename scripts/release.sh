@@ -31,6 +31,7 @@ fi
 # Prod must run from main
 if [ "$ENV" == "prod" ]; then
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  SOURCE_BRANCH="$CURRENT_BRANCH"
 
   if [ "$CURRENT_BRANCH" != "main" ]; then
     echo ""
@@ -43,15 +44,15 @@ if [ "$ENV" == "prod" ]; then
     fi
 
     echo ""
-    echo -e "${BLUE}Fast-forward merging dev → main...${NC}"
+    echo -e "${BLUE}Fast-forward merging $SOURCE_BRANCH → main...${NC}"
     git fetch origin
     git checkout main
-    git merge --ff-only origin/dev || {
-      echo -e "${RED}❌ Fast-forward not possible — main has diverged from dev.${NC}"
-      echo -e "${YELLOW}   Resolve by rebasing dev onto main first, then retry.${NC}"
+    git merge --ff-only "$SOURCE_BRANCH" || {
+      echo -e "${RED}❌ Fast-forward not possible — main has diverged from $SOURCE_BRANCH.${NC}"
+      echo -e "${YELLOW}   Resolve by rebasing $SOURCE_BRANCH onto main first, then retry.${NC}"
       exit 1
     }
-    echo -e "${GREEN}✅ Fast-forwarded dev → main${NC}"
+    echo -e "${GREEN}✅ Fast-forwarded $SOURCE_BRANCH → main${NC}"
   fi
 fi
 
