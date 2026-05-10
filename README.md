@@ -10,6 +10,10 @@ A centralized Flutter application for capturing, organizing, and managing notifi
 - **Dashmon Integration**: View notification statistics and patterns with Dashmon integration
 - **Privacy Focused**: All data stays on your device with no cloud uploads
 
+## Roadmap
+
+See [TODO.md](TODO.md) for the planned features, bug tracker, and tech debt backlog.
+
 ## Device Setup
 
 ### Android Setup

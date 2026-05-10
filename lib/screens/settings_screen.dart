@@ -379,6 +379,49 @@ class SettingsScreenState extends State<SettingsScreen> {
               ),
               const Divider(),
 
+              // Send Test Notification
+              ListTile(
+                leading: const Icon(Icons.notifications_active),
+                title: const Text('Send Test Notification'),
+                subtitle: const Text(
+                  'Send a test notification to verify the app is working',
+                ),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Sending test notification...'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                  try {
+                    await provider.sendTestNotification(
+                      title: 'Test Notification',
+                      body:
+                          'This is a test notification sent from Notification Hub',
+                    );
+                    if (context.mounted) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Test notification sent successfully!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Failed: ${e.toString()}'),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              const Divider(),
+
               // App Management
               ListTile(
                 title: const Text('Manage Apps'),

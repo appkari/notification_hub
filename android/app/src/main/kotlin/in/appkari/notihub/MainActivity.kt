@@ -203,25 +203,48 @@ class MainActivity : FlutterActivity() {
         Log.d("MainActivity", "=== LAUNCHING APP ===")
         Log.d("MainActivity", "Package name: $packageName")
         return try {
-            val packageManager = packageManager
-            val intent = packageManager.getLaunchIntentForPackage(packageName)
-            Log.d("MainActivity", "Launch intent found: ${intent != null}")
-            if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                Log.d("MainActivity", "Starting activity with intent: $intent")
-                startActivity(intent)
+            val pm = packageManager
+
+            // 1) Fast path: standard launcher intent
+            val launchIntent = pm.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                Log.d("MainActivity", "Starting activity via launch intent: $launchIntent")
+                startActivity(launchIntent)
                 Log.d("MainActivity", "Successfully launched app: $packageName")
-                true
-            } else {
-                Log.w("MainActivity", "No launch intent found for package: $packageName")
-                // Try alternative method - check if app is installed
-                try {
-                    packageManager.getApplicationInfo(packageName, 0)
-                    Log.w("MainActivity", "App $packageName is installed but has no launch intent")
-                } catch (e: Exception) {
-                    Log.w("MainActivity", "App $packageName is not installed")
+                return true
+            }
+
+            Log.w("MainActivity", "No launch intent for $packageName — querying exported activities…")
+
+            // 2) Fallback: find ANY exported activity in the package
+            val queryIntent = Intent().apply { setPackage(packageName) }
+            val activities = pm.queryIntentActivities(queryIntent, 0)
+            val exported = activities.firstOrNull { it.activityInfo.exported }
+            if (exported != null) {
+                val fallbackIntent = Intent().apply {
+                    setClassName(packageName, exported.activityInfo.name)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                false
+                Log.d("MainActivity", "Starting exported activity: ${exported.activityInfo.name}")
+                startActivity(fallbackIntent)
+                Log.d("MainActivity", "Successfully launched app via fallback activity: $packageName")
+                return true
+            }
+
+            // 3) Last resort: open the app's Settings info page
+            Log.w("MainActivity", "No exported activity for $packageName — falling back to app info page")
+            try {
+                val infoIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(infoIntent)
+                Log.d("MainActivity", "Opened app info page for: $packageName")
+                return true
+            } catch (settingsEx: Exception) {
+                Log.e("MainActivity", "Could not open app info page either: ${settingsEx.message}")
+                return false
             }
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to launch app $packageName: ${e.message}")
