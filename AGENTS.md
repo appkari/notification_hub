@@ -9,7 +9,20 @@ Android-only Flutter app that captures, organizes, and manages notifications fro
 
 ## Critical Rules (MUST FOLLOW)
 
-- **NEVER auto-commit or auto-push anything.** Always wait for explicit user instruction before committing code or pushing to remote. This includes creating tags, merging branches, and any git operation that reaches the remote.
+### 🔴 Git: Ask before every operation
+
+> **BEFORE running ANY git command** (`git commit`, `git push`, `git tag`, `git merge`, `git checkout` of another branch, etc.) **I MUST stop and ask the user first.**
+>
+> I will NEVER proceed with any git operation — including commits, pushes, tags, merges, branch switches, or branch creation — without an explicit "yes, go ahead" from the user in that same conversation turn.
+
+This applies even when:
+- The user says "release the app" (commits + tags are implied but I MUST ask)
+- A script I'm asked to run would do git operations (I MUST warn and ask before it runs)
+- The change seems trivial or urgent
+- The user gives multi-step instructions that include implied commits
+
+**The ONLY exception**: The user explicitly says "commit" or "push" or "create a tag" as a direct instruction in the current message.
+
 - **NEVER create release tags** (`prod@*`, `dev@*`) unless the user explicitly requests it via the release script (`scripts/release.sh`).
 - **NEVER modify CI/CD workflows** (`.github/workflows/`) without explicit user request.
 - **NEVER modify `pubspec.yaml` version** without explicit user request.
