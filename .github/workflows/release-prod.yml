@@ -38,44 +38,7 @@ jobs:
       - name: Create signing keystore
         run: echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > android/app/key.jks
 
-      - name: Build APK (production flavor)
+      - name: Build and validate APK
         run: flutter build apk --flavor production -t lib/main_production.dart --release
 
-      - name: Build AAB for Play Store (production flavor)
-        run: flutter build appbundle --flavor production -t lib/main_production.dart --release
-
-      - name: Create Play Store credentials
-        run: echo "${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}" | base64 -d > android/play-store-key.json
-
-      - name: Install fastlane
-        run: sudo gem install fastlane
-
-      - name: Deploy to Play Store (internal)
-        run: |
-          set +e
-          output=$(fastlane run upload_to_play_store \
-            aab:build/app/outputs/bundle/productionRelease/app-production-release.aab \
-            json_key:android/play-store-key.json \
-            package_name:in.appkari.notihub \
-            track:internal \
-            skip_upload_screenshots:true \
-            skip_upload_images:true 2>&1)
-          exit_code=$?
-          echo "$output"
-          if [ $exit_code -ne 0 ]; then
-            if echo "$output" | grep -q "has already been used"; then
-              echo "::notice::Version code already uploaded — treating as success."
-            else
-              exit $exit_code
-            fi
-          fi
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/app/outputs/flutter-apk/app-production-release.apk
-          make_latest: true
-          body: |
-            **Production build** — ${{ github.ref_name }}
-            Flavor: production (`in.appkari.notihub`)
-            Play Store: Uploaded to internal testing
+      # Deploy handled by Codemagic
