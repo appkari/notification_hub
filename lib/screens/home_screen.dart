@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart'
     show
+        AlertDialog,
         AppBar,
         BuildContext,
+        Colors,
+        FloatingActionButton,
+        FloatingActionButtonLocation,
         Icon,
         IconButton,
         Icons,
         MaterialPageRoute,
         Navigator,
         Scaffold,
+        ScaffoldMessenger,
+        SnackBar,
         State,
         StatefulWidget,
         Text,
-        Widget;
+        TextButton,
+        Widget,
+        showDialog;
 import 'package:provider/provider.dart' show Consumer;
 
 import '../providers/notification_provider.dart' show NotificationProvider;
@@ -71,57 +79,104 @@ class _HomeScreenState extends State<HomeScreen> {
   //   }
   // }
 
+  Future<void> _confirmClearAllNotifications(
+    BuildContext context,
+    NotificationProvider provider,
+  ) async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Clear All Notifications'),
+            content: const Text(
+              'Are you sure you want to clear all notifications? This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Clear All'),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldClear != true || !mounted) return;
+
+    await provider.clearAllNotifications();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      this.context,
+    ).showSnackBar(const SnackBar(content: Text('All notifications cleared')));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notification Hub'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // Navigate to settings page
-              Navigator.pushNamed(context, '/settings');
-            },
+    return Consumer<NotificationProvider>(
+      builder: (context, provider, child) {
+        final groupedNotifications = provider.getNotificationsByApp();
+        final showClearAllButton =
+            provider.isListening && groupedNotifications.isNotEmpty;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Notification Hub'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/settings');
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.history),
+                tooltip: 'Notification History',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: 'Notification History',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationHistoryScreen(),
-                ),
+          floatingActionButton:
+              showClearAllButton
+                  ? FloatingActionButton.extended(
+                    onPressed: () {
+                      _confirmClearAllNotifications(context, provider);
+                    },
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    icon: const Icon(Icons.delete_sweep),
+                    label: const Text('Clear All'),
+                  )
+                  : null,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          body: () {
+            if (!provider.isListening) {
+              return const PermissionRequestWidget();
+            }
+
+            if (groupedNotifications.isEmpty) {
+              return const EmptyState(
+                icon: Icons.notifications_off,
+                title: 'No notifications yet',
+                message: 'Notifications will appear here as they arrive',
               );
-            },
-          ),
-        ],
-      ),
-      body: Consumer<NotificationProvider>(
-        builder: (context, provider, child) {
-          // Show permission request if not listening
-          if (!provider.isListening) {
-            // Use the new PermissionRequestWidget
-            return const PermissionRequestWidget();
-          }
+            }
 
-          // Get grouped notifications
-          final groupedNotifications = provider.getNotificationsByApp();
-
-          // Show empty state if no notifications
-          if (groupedNotifications.isEmpty) {
-            return const EmptyState(
-              icon: Icons.notifications_off,
-              title: 'No notifications yet',
-              message: 'Notifications will appear here as they arrive',
-            );
-          }
-
-          // Use the new NotificationListView
-          return const NotificationListView();
-        },
-      ),
+            return const NotificationListView();
+          }(),
+        );
+      },
     );
   }
 

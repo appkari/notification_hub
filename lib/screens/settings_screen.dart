@@ -25,7 +25,6 @@ import 'package:flutter/material.dart'
         SnackBar,
         StatefulWidget,
         Switch,
-        SafeArea,
         Text,
         TextButton,
         ValueKey,
@@ -40,10 +39,7 @@ import 'package:flutter/material.dart'
         CrossAxisAlignment,
         Image,
         ThemeMode,
-        BoxDecoration,
-        BorderRadius,
-        FontWeight,
-        TextStyle,
+        SafeArea,
         MainAxisSize;
 import 'package:provider/provider.dart' show Consumer;
 import 'package:notification_listener_service/notification_listener_service.dart'
@@ -51,7 +47,6 @@ import 'package:notification_listener_service/notification_listener_service.dart
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/notification_provider.dart' show NotificationProvider;
-import '../providers/subscription_provider.dart' show SubscriptionProvider;
 import '../services/notification_service.dart' show NotificationService;
 import '../providers/theme_provider.dart';
 import '../models/notification_model.dart' show NotificationChannelInfo;
@@ -688,54 +683,53 @@ class SettingsScreenState extends State<SettingsScreen> {
               const Divider(),
 
               // Premium Subscription Section
-              Consumer<SubscriptionProvider>(
-                builder: (context, subscriptionProvider, _) {
-                  return ListTile(
-                    leading: Icon(
-                      subscriptionProvider.isPremium
-                          ? Icons.star
-                          : Icons.star_border,
-                      color:
-                          subscriptionProvider.isPremium
-                              ? Colors.amber
-                              : Colors.grey,
-                    ),
-                    title: Text(
-                      subscriptionProvider.isPremium
-                          ? 'Premium Active'
-                          : 'Upgrade to Premium',
-                    ),
-                    subtitle: Text(
-                      subscriptionProvider.isPremium
-                          ? 'Enjoy all premium features'
-                          : 'Get advanced features for just ₹1/month',
-                    ),
-                    trailing:
-                        subscriptionProvider.isPremium
-                            ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'PREMIUM',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.amber,
-                                ),
-                              ),
-                            )
-                            : const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.pushNamed(context, '/subscription'),
-                  );
-                },
-              ),
-
+              // Consumer<SubscriptionProvider>(
+              //   builder: (context, subscriptionProvider, _) {
+              //     return ListTile(
+              //       leading: Icon(
+              //         subscriptionProvider.isPremium
+              //             ? Icons.star
+              //             : Icons.star_border,
+              //         color:
+              //             subscriptionProvider.isPremium
+              //                 ? Colors.amber
+              //                 : Colors.grey,
+              //       ),
+              //       title: Text(
+              //         subscriptionProvider.isPremium
+              //             ? 'Premium Active'
+              //             : 'Upgrade to Premium',
+              //       ),
+              //       subtitle: Text(
+              //         subscriptionProvider.isPremium
+              //             ? 'Enjoy all premium features'
+              //             : 'Get advanced features for just ₹1/month',
+              //       ),
+              //       trailing:
+              //           subscriptionProvider.isPremium
+              //               ? Container(
+              //                 padding: const EdgeInsets.symmetric(
+              //                   horizontal: 8,
+              //                   vertical: 4,
+              //                 ),
+              //                 decoration: BoxDecoration(
+              //                   color: Colors.amber.withValues(alpha: 0.2),
+              //                   borderRadius: BorderRadius.circular(8),
+              //                 ),
+              //                 child: const Text(
+              //                   'PREMIUM',
+              //                   style: TextStyle(
+              //                     fontSize: 10,
+              //                     fontWeight: FontWeight.bold,
+              //                     color: Colors.amber,
+              //                   ),
+              //                 ),
+              //               )
+              //               : const Icon(Icons.chevron_right),
+              //       onTap: () => Navigator.pushNamed(context, '/subscription'),
+              //     );
+              //   },
+              // ),
               const Divider(),
 
               ListTile(
@@ -786,47 +780,10 @@ class SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
-              ListTile(
-                title: const Text('Clear All Data'),
-                subtitle: const Text('Remove all stored notifications'),
-                onTap: () {
-                  _confirmClearData(context, provider);
-                },
-              ),
-              const Divider(),
             ],
           );
         },
       ),
-    );
-  }
-
-  void _confirmClearData(BuildContext context, NotificationProvider provider) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Clear All Data'),
-            content: const Text(
-              'Are you sure you want to clear all stored notifications? This action cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  provider.clearAllNotifications();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All data cleared')),
-                  );
-                },
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
     );
   }
 
