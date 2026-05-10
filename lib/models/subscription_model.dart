@@ -105,8 +105,9 @@ class SubscriptionModel {
     }
     if (status is String) {
       try {
-        return SubscriptionStatus.values
-            .firstWhere((e) => e.toString().split('.').last == status);
+        return SubscriptionStatus.values.firstWhere(
+          (e) => e.toString().split('.').last == status,
+        );
       } catch (e) {
         return SubscriptionStatus.free;
       }
