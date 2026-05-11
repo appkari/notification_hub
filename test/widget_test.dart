@@ -189,6 +189,107 @@ void main() {
     },
   );
 
+  testWidgets('swiping app group shows undo and restores notifications', (
+    tester,
+  ) async {
+    final provider = FakeNotificationProvider(
+      isListening: true,
+      notifications: [
+        _notification(
+          id: 'a1',
+          packageName: 'com.chat',
+          appName: 'Chat',
+          title: 'Msg 1',
+        ),
+        _notification(
+          id: 'a2',
+          packageName: 'com.chat',
+          appName: 'Chat',
+          title: 'Msg 2',
+          minutesAgo: 1,
+        ),
+      ],
+    );
+    final appNotifications =
+        provider.notifications
+            .where((n) => n.packageName == 'com.chat')
+            .toList();
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        provider: provider,
+        child: Scaffold(
+          body: AppNotificationCard(
+            packageName: 'com.chat',
+            appNotifications: appNotifications,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('com.chat')),
+      const Offset(-1200, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(provider.notifications, isEmpty);
+    expect(provider.notificationHistory, hasLength(2));
+    expect(find.text('UNDO'), findsOneWidget);
+
+    await tester.tap(find.text('UNDO'));
+    await tester.pumpAndSettle();
+
+    expect(provider.notifications, hasLength(2));
+    expect(provider.notificationHistory, isEmpty);
+  });
+
+  testWidgets('clear all shows undo and restores notifications', (
+    tester,
+  ) async {
+    final provider = FakeNotificationProvider(
+      isListening: true,
+      notifications: [
+        _notification(
+          id: 'b1',
+          packageName: 'com.chat',
+          appName: 'Chat',
+          title: 'Hello',
+        ),
+        _notification(
+          id: 'b2',
+          packageName: 'com.mail',
+          appName: 'Mail',
+          title: 'Inbox',
+          minutesAgo: 1,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(provider: provider, child: const HomeScreen()),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Clear All'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Clear All').last);
+    await tester.pumpAndSettle();
+
+    expect(provider.notifications, isEmpty);
+    expect(provider.notificationHistory, hasLength(2));
+    expect(find.text('UNDO'), findsOneWidget);
+
+    await tester.tap(find.text('UNDO'));
+    await tester.pumpAndSettle();
+
+    expect(provider.notifications, hasLength(2));
+    expect(provider.notificationHistory, isEmpty);
+  });
+
   testWidgets('history screen items are read only', (tester) async {
     final historyItem = _notification(
       id: 'history-1',
@@ -364,6 +465,24 @@ class FakeNotificationProvider extends NotificationProvider {
   }
 
   @override
+  Future<void> restoreNotifications(List<AppNotification> notifications) async {
+    for (final notification in notifications) {
+      _historyValue.removeWhere((item) => item.id == notification.id);
+      _notificationsValue.insert(0, notification);
+    }
+    notifyListeners();
+  }
+
+  @override
+  Future<List<AppNotification>> clearAllNotifications() async {
+    final cleared = List<AppNotification>.from(_notificationsValue);
+    _historyValue.insertAll(0, cleared);
+    _notificationsValue.clear();
+    notifyListeners();
+    return cleared;
+  }
+
+  @override
   Future<bool> executeNotificationAction(String? key) async {
     executeActionCalls.add(key);
     return executeActionResult;
@@ -374,6 +493,9 @@ class FakeNotificationProvider extends NotificationProvider {
     launchAppCalls.add(packageName);
     return launchAppResult;
   }
+
+  @override
+  Future<void> loadHistory() async {}
 }
 
 class _FakeNotificationStore implements NotificationStore {
@@ -409,4 +531,10 @@ class _FakeNotificationStore implements NotificationStore {
 
   @override
   Future<void> insertNotification(db.NotificationsCompanion entry) async {}
+
+  @override
+  Future<void> restoreFromHistory(
+    List<db.NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) async {}
 }

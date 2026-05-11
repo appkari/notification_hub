@@ -99,6 +99,22 @@ class AppDatabase extends _$AppDatabase {
       (delete(notificationHistory)
         ..where((tbl) => tbl.timestamp.isSmallerThan(Constant(cutoff)))).go();
 
+  // Restore notifications from history in a single transaction
+  Future<void> restoreFromHistory(
+    List<NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) {
+    return transaction(() async {
+      for (final entry in entries) {
+        await into(notifications).insertOnConflictUpdate(entry);
+      }
+      for (final id in historyIds) {
+        await (delete(notificationHistory)
+          ..where((tbl) => tbl.id.equals(id))).go();
+      }
+    });
+  }
+
   // Add pagination support for notifications
   Future<List<Notification>> getPaginatedNotifications(int offset, int limit) {
     return (select(notifications)

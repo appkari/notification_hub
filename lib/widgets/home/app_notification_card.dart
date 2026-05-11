@@ -323,8 +323,8 @@ class AppNotificationCardState extends State<AppNotificationCard> {
         final cleared = await provider.clearAppNotifications(
           widget.packageName,
         );
-        widget.onDismissed?.call();
         if (!mounted) return;
+        widget.onDismissed?.call();
         messenger
           ..clearSnackBars()
           ..showSnackBar(

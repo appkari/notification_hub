@@ -20,6 +20,11 @@ abstract class NotificationStore {
   Future<void> deleteHistoryOlderThan(DateTime cutoff);
 
   Future<List<Notification>> getPaginatedNotifications(int offset, int limit);
+
+  Future<void> restoreFromHistory(
+    List<NotificationsCompanion> entries,
+    List<String> historyIds,
+  );
 }
 
 class DriftNotificationStore implements NotificationStore {
@@ -64,4 +69,10 @@ class DriftNotificationStore implements NotificationStore {
   @override
   Future<void> insertNotification(NotificationsCompanion entry) =>
       _database.insertNotification(entry);
+
+  @override
+  Future<void> restoreFromHistory(
+    List<NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) => _database.restoreFromHistory(entries, historyIds);
 }
