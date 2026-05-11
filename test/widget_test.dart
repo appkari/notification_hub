@@ -468,8 +468,8 @@ class FakeNotificationProvider extends NotificationProvider {
   Future<void> restoreNotifications(List<AppNotification> notifications) async {
     for (final notification in notifications) {
       _historyValue.removeWhere((item) => item.id == notification.id);
-      _notificationsValue.insert(0, notification);
     }
+    _notificationsValue.insertAll(0, notifications);
     notifyListeners();
   }
 
