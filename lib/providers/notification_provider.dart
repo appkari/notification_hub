@@ -344,26 +344,21 @@ class NotificationProvider with ChangeNotifier {
     final appNotifications =
         _notifications.where((n) => n.packageName == packageName).toList();
 
-    // Add all to history and remove from system tray
+    // Remove from in-memory list first to avoid intermediate rebuilds
+    // while the dismissed Dismissible is still in the tree.
+    _notifications.removeWhere((n) => n.packageName == packageName);
+    _updatePersistentSummaryNotification();
+    notifyListeners();
+
+    // Archive to history and clean up system tray / DB
     await _archiveNotifications(appNotifications);
     for (final notification in appNotifications) {
       await _notificationService.removeNotificationFromSystemTray(
         notification.key,
       );
-      // Delete from active notifications in the database
-      debugPrint(
-        'NotificationProvider: Deleting notification \\${notification.id} for app $packageName from active database...',
-      );
       await _store.deleteNotification(notification.id);
-      debugPrint(
-        'NotificationProvider: Notification \\${notification.id} for app $packageName deleted from active database.',
-      );
     }
 
-    // Remove from active notifications
-    _notifications.removeWhere((n) => n.packageName == packageName);
-    _updatePersistentSummaryNotification();
-    notifyListeners();
     return appNotifications;
   }
 
@@ -649,10 +644,10 @@ class NotificationProvider with ChangeNotifier {
     debugPrint(
       'NotificationProvider: Restoring ${notifications.length} notifications from history...',
     );
-    for (final notification in notifications) {
-      await _store.insertNotification(_toDbNotification(notification));
-      await _store.deleteHistory(notification.id);
-    }
+    await _store.restoreFromHistory(
+      notifications.map(_toDbNotification).toList(),
+      notifications.map((n) => n.id).toList(),
+    );
     await loadNotifications();
     await loadHistory();
     debugPrint(
