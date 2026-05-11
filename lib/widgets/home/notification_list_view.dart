@@ -59,11 +59,6 @@ class NotificationListView extends StatelessWidget {
                     return AppNotificationCard(
                       packageName: packageName,
                       appNotifications: appNotifications,
-                      onDismissed:
-                          () => Provider.of<NotificationProvider>(
-                            context,
-                            listen: false,
-                          ).clearAppNotifications(packageName),
                     );
                   },
                 ),
