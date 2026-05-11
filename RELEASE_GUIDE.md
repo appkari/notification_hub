@@ -74,51 +74,68 @@ For major releases, updates to native code, or new app store submissions.
 
 ---
 
-## 2. Code Push Release (Shorebird) - Instant Updates
+## 2. Code Push (Shorebird) — Instant Updates
 
 For quick bug fixes and feature updates without app store review.
+
+> **Important**: This project uses **flavors** (`development` / `production`). All Shorebird commands must include the `--flavor` flag.
 
 ### Setup (One-time)
 
 1. **Create Shorebird account** at https://console.shorebird.dev
-2. **Link your app** (already done, app_id in `shorebird.yaml`)
-3. **Get Firebase token**:
+2. **Install Shorebird CLI**:
    ```bash
-   shorebird auth:github
+   curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | sh
    ```
-4. **Add GitHub Secret**:
-   - Go to: `Settings > Secrets and variables > Actions > New repository secret`
-   - Add `FIREBASE_TOKEN` with your token from Shorebird
+3. **Log in**:
+   ```bash
+   shorebird login
+   ```
+4. **Init the project** (links this app to your account):
+   ```bash
+   shorebird init --force
+   ```
+   This updates `shorebird.yaml` with app IDs tied to your account.
 
 ### Publishing a Code Update
 
-**Option A: From your local machine (fastest)**
+**Option A: From your local machine (recommended)**
+
+Use the helper script (reads the current version from `pubspec.yaml` automatically):
+
 ```bash
-flutter pub get
-shorebird release android
+# Quick Dart-only fix (incremental patch)
+./scripts/patch.sh production
+
+# New baseline (needed after native changes, Flutter upgrades, etc.)
+./scripts/patch.sh production  # then choose "release"
 ```
 
-This will:
-- Build the update patch
-- Upload to Shorebird
-- Users get the update automatically on next app launch
+**Option B: Manual commands**
 
-**Option B: Via GitHub Actions (recommended for teams)**
-1. Go to `Actions > Shorebird Code Push Release > Run workflow`
-2. Select environment and click "Run workflow"
-3. Shorebird will release the update automatically
+```bash
+# Incremental patch (Dart-only changes)
+shorebird patch android --flavor production --release-version=1.3.4+13
+
+# New baseline release
+shorebird release android --flavor production
+```
+
+> **Note**: The `--release-version` must be the **full version string** from `pubspec.yaml` (e.g. `1.3.4+13`). Use `shorebird releases list --flavor production` to see existing releases.
 
 ---
 
 ## Release Workflow Examples
 
-### Scenario 1: Quick Bug Fix
+### Scenario 1: Quick Bug Fix (Dart-only)
 ```bash
 # Make code changes
 git add .
 git commit -m "fix: crash on notification click"
-shorebird release android
-# Users get update in ~5 minutes
+
+# Push as Shorebird patch (no app store, no APK)
+./scripts/patch.sh production
+# Choose "patch" — users get the fix in ~5 minutes
 ```
 
 ### Scenario 2: New Version with Native Changes
@@ -127,23 +144,26 @@ shorebird release android
 # Make code changes
 git add .
 git commit -m "feat: new dashboard"
-./scripts/release.sh prod  # Bumps version, tags prod@1.1.0, pushes
+./scripts/release.sh prod  # Bumps version, tags prod@1.2.0, pushes
 # GitHub Actions builds APK → Release created
-# Users download new version from app store/GitHub
+
+# Then create new Shorebird baseline
+./scripts/patch.sh production
+# Choose "release" — must create a new baseline after native changes
 ```
 
-### Scenario 3: Multiple Releases
+### Scenario 3: Multiple Patches
 ```bash
 # Hotfix #1
 git commit -m "fix: notification bug"
-shorebird release android  # Users get update in 5 min
+./scripts/patch.sh production  # Choose "patch" — users get fix in 5 min
 
 # Hotfix #2
 git commit -m "fix: crash in settings"
-shorebird release android  # Users get second update
+./scripts/patch.sh production  # Choose "patch" — second incremental update
 
 # When ready for major release
-./scripts/release.sh prod  # Bumps version, tags prod@1.1.0, and pushes
+./scripts/release.sh prod  # Bumps version, tags prod@1.1.0, pushes
 ```
 
 ---
@@ -151,8 +171,8 @@ shorebird release android  # Users get second update
 ## FAQ
 
 **Q: When should I use GitHub Actions vs Shorebird?**
-- Use **GitHub Actions** for: Major versions, native code changes, app store uploads
-- Use **Shorebird** for: Dart/Flutter code fixes, quick patches, emergency hotfixes
+- Use **GitHub Actions** (`release.sh`) for: Major versions, native code changes, app store uploads
+- Use **Shorebird** (`patch.sh`) for: Dart/Flutter code fixes, quick patches, emergency hotfixes
 
 **Q: Can I release before I tag?**
 - Yes! Shorebird releases are independent of GitHub tags
@@ -160,8 +180,8 @@ shorebird release android  # Users get second update
 
 **Q: How do I rollback a Shorebird release?**
 ```bash
-shorebird release list
-shorebird release rollback v1.0.0 1  # Rollback to previous patch
+shorebird releases list --flavor production
+shorebird release rollback 1.3.4+13 1  # Rollback to previous patch on that version
 ```
 
 **Q: Do I need to update build number manually?**
