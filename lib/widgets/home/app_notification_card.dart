@@ -314,13 +314,31 @@ class AppNotificationCardState extends State<AppNotificationCard> {
         padding: const EdgeInsets.only(right: 24.0),
         child: const Icon(Icons.delete, color: Colors.white, size: 32),
       ),
-      onDismissed: (direction) {
+      onDismissed: (direction) async {
+        final provider = Provider.of<NotificationProvider>(
+          context,
+          listen: false,
+        );
         final messenger = ScaffoldMessenger.of(context);
+        final cleared = await provider.clearAppNotifications(
+          widget.packageName,
+        );
         widget.onDismissed?.call();
         if (!mounted) return;
-        messenger.showSnackBar(
-          SnackBar(content: Text('All notifications for $appName cleared')),
-        );
+        messenger
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('All notifications for $appName cleared'),
+              action: SnackBarAction(
+                label: 'UNDO',
+                onPressed: () async {
+                  await provider.restoreNotifications(cleared);
+                },
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
       },
       child: Card(
         elevation: 0,

@@ -88,7 +88,6 @@ void main() {
           body: AppNotificationCard(
             packageName: 'com.chat',
             appNotifications: appNotifications,
-            onDismissed: () => provider.clearAppNotifications('com.chat'),
           ),
         ),
       ),
@@ -328,7 +327,9 @@ class FakeNotificationProvider extends NotificationProvider {
   }
 
   @override
-  Future<void> clearAppNotifications(String packageName) async {
+  Future<List<AppNotification>> clearAppNotifications(
+    String packageName,
+  ) async {
     clearAppCalls.add(packageName);
     final removed =
         _notificationsValue
@@ -339,6 +340,7 @@ class FakeNotificationProvider extends NotificationProvider {
     );
     _historyValue.insertAll(0, removed);
     notifyListeners();
+    return removed;
   }
 
   @override

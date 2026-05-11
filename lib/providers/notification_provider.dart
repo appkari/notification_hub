@@ -243,11 +243,13 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Clear all notifications
-  Future<void> clearAllNotifications() async {
+  // Clear all notifications, returns the cleared list for undo
+  Future<List<AppNotification>> clearAllNotifications() async {
     debugPrint('NotificationProvider: Clearing all notifications...');
+    final cleared = List<AppNotification>.from(_notifications);
+
     // Add all current notifications to history in the database
-    await _archiveNotifications(_notifications);
+    await _archiveNotifications(cleared);
 
     // Clear all notifications from the database
     debugPrint(
@@ -265,6 +267,7 @@ class NotificationProvider with ChangeNotifier {
     _notifications = [];
     _updatePersistentSummaryNotification();
     notifyListeners();
+    return cleared;
   }
 
   // Get list of excluded app package names
@@ -330,8 +333,10 @@ class NotificationProvider with ChangeNotifier {
         .toList(); // Map DB results to AppNotification
   }
 
-  // Add method to clear notifications for a specific app
-  Future<void> clearAppNotifications(String packageName) async {
+  // Clear notifications for a specific app, returns the cleared list for undo
+  Future<List<AppNotification>> clearAppNotifications(
+    String packageName,
+  ) async {
     debugPrint(
       'NotificationProvider: Clearing notifications for app: $packageName...',
     );
@@ -359,6 +364,7 @@ class NotificationProvider with ChangeNotifier {
     _notifications.removeWhere((n) => n.packageName == packageName);
     _updatePersistentSummaryNotification();
     notifyListeners();
+    return appNotifications;
   }
 
   Future<void> clearChannelNotifications({
@@ -635,6 +641,22 @@ class NotificationProvider with ChangeNotifier {
     await loadHistory();
     debugPrint(
       'NotificationProvider: Notification ${notification.id} restored and lists reloaded.',
+    );
+  }
+
+  // Restore multiple notifications from history (bulk undo)
+  Future<void> restoreNotifications(List<AppNotification> notifications) async {
+    debugPrint(
+      'NotificationProvider: Restoring ${notifications.length} notifications from history...',
+    );
+    for (final notification in notifications) {
+      await _store.insertNotification(_toDbNotification(notification));
+      await _store.deleteHistory(notification.id);
+    }
+    await loadNotifications();
+    await loadHistory();
+    debugPrint(
+      'NotificationProvider: ${notifications.length} notifications restored and lists reloaded.',
     );
   }
 

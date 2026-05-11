@@ -14,6 +14,7 @@ import 'package:flutter/material.dart'
         Scaffold,
         ScaffoldMessenger,
         SnackBar,
+        SnackBarAction,
         State,
         StatefulWidget,
         Text,
@@ -106,12 +107,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (shouldClear != true || !mounted) return;
 
-    await provider.clearAllNotifications();
+    final cleared = await provider.clearAllNotifications();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      this.context,
-    ).showSnackBar(const SnackBar(content: Text('All notifications cleared')));
+    ScaffoldMessenger.of(this.context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${cleared.length} notifications cleared'),
+          action: SnackBarAction(
+            label: 'UNDO',
+            onPressed: () async {
+              await provider.restoreNotifications(cleared);
+            },
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
   }
 
   @override
