@@ -2,6 +2,7 @@
   <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
   <!-- Core permissions needed for notification access -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
   <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <!-- Permission for starting on boot (optional) -->
@@ -28,6 +29,9 @@
       <intent-filter>
         <action android:name="android.service.notification.NotificationListenerService"/>
       </intent-filter>
+    </service>
+    <service android:name="in.appkari.notihub.NotiHubKeepaliveService" android:exported="false" android:foregroundServiceType="specialUse">
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="notification_listener_keepalive"/>
     </service>
     <receiver android:name=".NotiHubBootReceiver" android:enabled="true" android:exported="true">
       <intent-filter>
