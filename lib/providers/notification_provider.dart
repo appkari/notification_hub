@@ -243,6 +243,11 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setRemoveIfSourceAppRemoves(bool value) {
+    _notificationService.setRemoveIfSourceAppRemoves(value);
+    notifyListeners();
+  }
+
   // Clear all notifications, returns the cleared list for undo
   Future<List<AppNotification>> clearAllNotifications() async {
     debugPrint('NotificationProvider: Clearing all notifications...');

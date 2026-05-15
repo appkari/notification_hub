@@ -58,10 +58,12 @@ class NotificationService {
   bool _removeIfSourceAppRemoves = false;
   bool get removeIfSourceAppRemoves => _removeIfSourceAppRemoves;
 
-  Future<void> setRemoveIfSourceAppRemoves(bool value) async {
+  void setRemoveIfSourceAppRemoves(bool value) {
     _removeIfSourceAppRemoves = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_removeIfSourceAppRemovesKey, value);
+    // Save to prefs in background — don't block the caller
+    SharedPreferences.getInstance().then(
+      (prefs) => prefs.setBool(_removeIfSourceAppRemovesKey, value),
+    );
   }
 
   // Initialize notification service
