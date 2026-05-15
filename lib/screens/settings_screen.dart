@@ -253,7 +253,6 @@ class SettingsScreenState extends State<SettingsScreen> {
               ),
               Consumer<NotificationProvider>(
                 builder: (context, provider, _) {
-                  final notificationService = provider.notificationService;
                   return SwitchListTile(
                     title: const Text(
                       'Remove from app if source app removes notification',
@@ -261,11 +260,9 @@ class SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text(
                       'If enabled, notifications will be removed from this app if the original app removes them.',
                     ),
-                    value: notificationService.removeIfSourceAppRemoves,
-                    onChanged: (value) async {
-                      await notificationService.setRemoveIfSourceAppRemoves(
-                        value,
-                      );
+                    value: provider.notificationService.removeIfSourceAppRemoves,
+                    onChanged: (value) {
+                      provider.setRemoveIfSourceAppRemoves(value);
                     },
                   );
                 },
