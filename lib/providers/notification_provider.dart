@@ -1,4 +1,4 @@
-import 'dart:async' show StreamSubscription;
+import 'dart:async' show StreamSubscription, Timer;
 import 'package:flutter/foundation.dart'
     show
         ChangeNotifier,
@@ -44,6 +44,11 @@ class NotificationProvider with ChangeNotifier {
   bool _isInitialized = false;
   StreamSubscription<AppNotification>? _subscription;
 
+  // Debounce rapid notifyListeners() calls triggered by frequent updates
+  // (e.g. ongoing progress notifications that arrive many times per second).
+  Timer? _notifyDebounce;
+  static const _notifyDebounceDuration = Duration(milliseconds: 100);
+
   // Getters
   List<AppNotification> get notifications => _notifications;
   List<AppNotification> get notificationHistory => _notificationHistory;
@@ -60,6 +65,11 @@ class NotificationProvider with ChangeNotifier {
 
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
+
+  void _debouncedNotifyListeners() {
+    _notifyDebounce?.cancel();
+    _notifyDebounce = Timer(_notifyDebounceDuration, notifyListeners);
+  }
 
   // Initialize the provider
   Future<void> _initialize() async {
@@ -194,21 +204,32 @@ class NotificationProvider with ChangeNotifier {
           }
         }
       } else {
-        // Deduplicate by ID
-        if (!_notifications.any((n) => n.id == notification.id)) {
+        final existingIdx = _notifications.indexWhere(
+          (n) => n.id == notification.id,
+        );
+        if (existingIdx == -1) {
+          // New notification — insert at top
           _notifications.insert(0, notification);
           if (shouldLog) {
             debugPrint(
               'NotificationProvider: Inserting new notification \\${notification.id} into database...',
             );
           }
-          // Save the new notification to the database
           await _store.insertNotification(_toDbNotification(notification));
           if (shouldLog) {
             debugPrint(
               'NotificationProvider: Notification \\${notification.id} inserted into database.',
             );
           }
+        } else {
+          // Ongoing notification updated in place (e.g. download/install progress)
+          _notifications[existingIdx] = notification;
+          if (shouldLog) {
+            debugPrint(
+              'NotificationProvider: Updated existing notification \\${notification.id} in place.',
+            );
+          }
+          await _store.insertNotification(_toDbNotification(notification));
         }
       }
       if (shouldLog) {
@@ -217,7 +238,9 @@ class NotificationProvider with ChangeNotifier {
         );
       }
       _updatePersistentSummaryNotification();
-      notifyListeners();
+      // Debounce UI rebuilds so rapid-fire updates (e.g. progress bars) are
+      // coalesced into a single frame instead of causing continuous redraws.
+      _debouncedNotifyListeners();
     });
   }
 
@@ -789,6 +812,7 @@ class NotificationProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _notifyDebounce?.cancel();
     _subscription?.cancel();
     if (_ownsNotificationService) {
       _notificationService.dispose();

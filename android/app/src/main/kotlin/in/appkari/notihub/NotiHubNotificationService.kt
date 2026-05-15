@@ -3,6 +3,8 @@ package `in`.appkari.notihub
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
@@ -24,6 +26,11 @@ class NotiHubNotificationService : NotificationListenerService() {
         val programmaticallyRemovedKeys = mutableSetOf<String>()
         // Store PendingIntents by notification key for later execution
         private val pendingIntents = mutableMapOf<String, android.app.PendingIntent?>()
+
+        // Debounce support: pending runnables keyed by notification key
+        private val debounceHandler = Handler(Looper.getMainLooper())
+        private val pendingRunnables = mutableMapOf<String, Runnable>()
+        private const val DEBOUNCE_MS = 300L
 
         fun removeNotificationByKey(key: String) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -170,7 +177,7 @@ class NotiHubNotificationService : NotificationListenerService() {
             Log.e("NotiHubService", "Error getting app icon: "+e.message)
         }
         
-        // Send notification data to Flutter
+        // Build notification data map
         val notificationData = mutableMapOf<String, Any?>(
             "packageName" to sbn.packageName,
             "appName" to appName,
@@ -191,8 +198,18 @@ class NotiHubNotificationService : NotificationListenerService() {
                 notificationData["extra_$key"] = value.toString()
             }
         }
-        
-        channel?.invokeMethod("onNotificationReceived", notificationData)
+
+        // Debounce: cancel any pending send for this key and schedule a fresh one.
+        // This prevents rapid-fire updates (e.g. download/install progress) from
+        // flooding the Flutter side and causing UI jank.
+        val notifKey = sbn.key
+        pendingRunnables.remove(notifKey)?.let { debounceHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            pendingRunnables.remove(notifKey)
+            channel?.invokeMethod("onNotificationReceived", notificationData)
+        }
+        pendingRunnables[notifKey] = runnable
+        debounceHandler.postDelayed(runnable, DEBOUNCE_MS)
         
         Log.d("NotiHubService", "shouldRemoveSystemTrayNotification: $shouldRemoveSystemTrayNotification")
         // Remove the notification from the system tray if needed and the setting is enabled
