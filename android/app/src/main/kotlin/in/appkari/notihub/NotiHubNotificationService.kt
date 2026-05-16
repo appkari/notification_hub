@@ -36,6 +36,7 @@ class NotiHubNotificationService : NotificationListenerService() {
         fun removeNotificationByKey(key: String) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 programmaticallyRemovedKeys.add(key)
+                pendingIntents.remove(key)
                 instance?.cancelNotification(key)
             }
         }
@@ -61,7 +62,7 @@ class NotiHubNotificationService : NotificationListenerService() {
         // Execute the original notification's PendingIntent
         fun executeNotificationAction(key: String): Boolean {
             Log.d("NotiHubService", "Attempting to execute notification action for key: $key")
-            val pendingIntent = pendingIntents[key]
+            val pendingIntent = pendingIntents.remove(key)
             return if (pendingIntent != null) {
                 try {
                     Log.d("NotiHubService", "PendingIntent found, executing...")
@@ -284,9 +285,10 @@ class NotiHubNotificationService : NotificationListenerService() {
             }
         }
         val key = sbn.key
+        pendingIntents.remove(key)
         if (programmaticallyRemovedKeys.remove(key)) {
             notificationData["programmatic"] = true
         }
         channel?.invokeMethod("onNotificationRemoved", notificationData)
     }
-} 
+}      
