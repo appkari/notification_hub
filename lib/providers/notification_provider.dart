@@ -429,31 +429,40 @@ class NotificationProvider with ChangeNotifier {
   // Add method to remove a single notification
   Future<void> removeNotification(String id) async {
     debugPrint('NotificationProvider: Removing notification with id: $id...');
-    // Find the notification before removing it
-    final notification = _notifications.firstWhere(
-      (n) => n.id == id,
-      orElse: () => throw Exception('Notification not found'),
-    );
+    try {
+      final index = _notifications.indexWhere((n) => n.id == id);
+      if (index == -1) {
+        debugPrint(
+          'NotificationProvider: Notification $id not found, skipping removal.',
+        );
+        return;
+      }
+      final notification = _notifications[index];
 
-    // Add to history before removing
-    await addToHistory(notification, reloadHistory: false);
-    await _notificationService.removeNotificationFromSystemTray(
-      notification.key,
-    );
+      // Add to history before removing
+      await addToHistory(notification, reloadHistory: false);
+      await _notificationService.removeNotificationFromSystemTray(
+        notification.key,
+      );
 
-    // Remove from active notifications
-    _notifications.removeWhere((n) => n.id == id);
-    // Delete from active notifications in the database
-    debugPrint(
-      'NotificationProvider: Deleting notification $id from active database...',
-    );
-    await _store.deleteNotification(id);
-    debugPrint(
-      'NotificationProvider: Notification $id deleted from active database.',
-    );
-    await loadHistory();
-    _updatePersistentSummaryNotification();
-    notifyListeners();
+      // Remove from active notifications
+      _notifications.removeAt(index);
+      // Delete from active notifications in the database
+      debugPrint(
+        'NotificationProvider: Deleting notification $id from active database...',
+      );
+      await _store.deleteNotification(id);
+      debugPrint(
+        'NotificationProvider: Notification $id deleted from active database.',
+      );
+      await loadHistory();
+      _updatePersistentSummaryNotification();
+      notifyListeners();
+    } catch (e) {
+      debugPrint(
+        'NotificationProvider: Error removing notification $id: $e',
+      );
+    }
   }
 
   // Get notifications grouped by app with pagination
