@@ -266,6 +266,10 @@ class NotificationService {
           final Map<dynamic, dynamic> notificationData =
               Map<dynamic, dynamic>.from(call.arguments);
           if (notificationData['programmatic'] == true) {
+            final removedKey = notificationData['key'] as String?;
+            if (removedKey != null) {
+              _programmaticallyRemovedKeys.remove(removedKey);
+            }
             debugPrint(
               'NotificationService: Ignoring programmatic removal for key: \\${notificationData['key']}',
             );
@@ -556,6 +560,7 @@ class NotificationService {
 
   Future<void> clearAllNotifications() async {
     try {
+      _programmaticallyRemovedKeys.clear();
       await _notificationChannel.invokeMethod('clearAllNotifications');
     } catch (e) {
       debugPrint(
@@ -572,8 +577,13 @@ class NotificationService {
         'key': key,
       });
     } catch (e) {
+      _programmaticallyRemovedKeys.remove(key);
       debugPrint('NotificationService: Failed to remove notification: \\$e');
     }
+  }
+
+  void clearProgrammaticallyRemovedKey(String key) {
+    _programmaticallyRemovedKeys.remove(key);
   }
 
   Future<void> showPersistentSummaryNotification({
