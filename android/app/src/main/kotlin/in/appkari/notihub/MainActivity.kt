@@ -81,8 +81,8 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
                 "sendTestNotification" -> {
-                    val title = call.argument<String>("title") ?: "Test Notification"
-                    val body = call.argument<String>("body") ?: "This is a test notification"
+                    val title = call.argument<String>("title") ?: getString(R.string.test_notification_title)
+                    val body = call.argument<String>("body") ?: getString(R.string.test_notification_body)
                     try {
                         val success = sendTestNotification(title, body)
                         result.success(success)
@@ -332,14 +332,14 @@ class MainActivity : FlutterActivity() {
             }
             
             val channelId = "test_channel"
-            val channelName = "Test Channel"
+            val channelName = getString(R.string.test_channel_name)
             
             // Create notification channel for Android 8.0+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val existingChannel = notificationManager.getNotificationChannel(channelId)
                 if (existingChannel == null) {
                     val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
-                    channel.description = "Channel for test notifications"
+                    channel.description = getString(R.string.test_channel_description)
                     channel.enableLights(true)
                     channel.enableVibration(true)
                     notificationManager.createNotificationChannel(channel)

@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Notification Hub</string>
+    <string name="service_stopped_title">NotiHub Service Stopped</string>
+    <string name="service_stopped_message">Notification listener was killed by the system.</string>
+    <string name="service_channel_name">NotiHub Service Channel</string>
+    <string name="test_channel_name">Test Channel</string>
+    <string name="test_channel_description">Channel for test notifications</string>
+    <string name="test_notification_title">Test Notification</string>
+    <string name="test_notification_body">This is a test notification</string>
 </resources> 
