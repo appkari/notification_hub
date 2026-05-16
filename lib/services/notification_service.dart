@@ -56,14 +56,42 @@ class NotificationService {
   // New setting: remove notification from app if source app removes it
   static const String _removeIfSourceAppRemovesKey = 'removeIfSourceAppRemoves';
   bool _removeIfSourceAppRemoves = false;
+  int _removeIfSourceAppRemovesPersistVersion = 0;
   bool get removeIfSourceAppRemoves => _removeIfSourceAppRemoves;
 
   void setRemoveIfSourceAppRemoves(bool value) {
+    final previousValue = _removeIfSourceAppRemoves;
     _removeIfSourceAppRemoves = value;
-    // Save to prefs in background — don't block the caller
-    SharedPreferences.getInstance().then(
-      (prefs) => prefs.setBool(_removeIfSourceAppRemovesKey, value),
+    final persistVersion = ++_removeIfSourceAppRemovesPersistVersion;
+    _persistRemoveIfSourceAppRemoves(
+      value: value,
+      previousValue: previousValue,
+      persistVersion: persistVersion,
     );
+  }
+
+  Future<void> _persistRemoveIfSourceAppRemoves({
+    required bool value,
+    required bool previousValue,
+    required int persistVersion,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final didSave = await prefs.setBool(_removeIfSourceAppRemovesKey, value);
+      if (!didSave && persistVersion == _removeIfSourceAppRemovesPersistVersion) {
+        _removeIfSourceAppRemoves = previousValue;
+        debugPrint(
+          'NotificationService: Failed to persist removeIfSourceAppRemoves setting (setBool returned false).',
+        );
+      }
+    } catch (e) {
+      if (persistVersion == _removeIfSourceAppRemovesPersistVersion) {
+        _removeIfSourceAppRemoves = previousValue;
+      }
+      debugPrint(
+        'NotificationService: Failed to persist removeIfSourceAppRemoves setting: $e',
+      );
+    }
   }
 
   // Initialize notification service
