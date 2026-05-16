@@ -19,7 +19,10 @@ import android.util.Log
  * from terminating the process, which would otherwise also kill the
  * [NotiHubNotificationService].
  *
- * The service is started when notification listening begins and stopped when it ends.
+ * Lifecycle:
+ * - Started when Flutter enables listening.
+ * - Stopped when Flutter disables listening.
+ * - Re-started after boot only if listening was enabled before reboot.
  */
 class NotiHubKeepaliveService : Service() {
 
@@ -27,6 +30,8 @@ class NotiHubKeepaliveService : Service() {
         private const val TAG = "NotiHubKeepalive"
         private const val CHANNEL_ID = "notihub_keepalive_channel"
         private const val NOTIFICATION_ID = 9998
+        private const val PREFS_NAME = "notihub_prefs"
+        private const val PREF_LISTENING_ENABLED = "pref_listening_enabled"
 
         fun start(context: Context) {
             val intent = Intent(context, NotiHubKeepaliveService::class.java)
@@ -39,6 +44,18 @@ class NotiHubKeepaliveService : Service() {
 
         fun stop(context: Context) {
             context.stopService(Intent(context, NotiHubKeepaliveService::class.java))
+        }
+
+        fun setListeningEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_LISTENING_ENABLED, enabled)
+                .apply()
+        }
+
+        fun wasListeningEnabled(context: Context): Boolean {
+            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(PREF_LISTENING_ENABLED, false)
         }
     }
 
