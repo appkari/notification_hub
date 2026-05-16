@@ -50,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,12 +75,27 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(notificationHistory, notificationHistory.channelId);
         await m.addColumn(notificationHistory, notificationHistory.channelName);
       }
+      if (from < 5) {
+        await m.createIndex(Index('idx_notifications_timestamp',
+            'CREATE INDEX idx_notifications_timestamp ON notifications (timestamp DESC)'));
+        await m.createIndex(Index('idx_notifications_package',
+            'CREATE INDEX idx_notifications_package ON notifications (package_name)'));
+        await m.createIndex(Index('idx_history_timestamp',
+            'CREATE INDEX idx_history_timestamp ON notification_history (timestamp DESC)'));
+      }
     },
   );
 
   // Notification CRUD
   Future<List<Notification>> getAllNotifications() =>
-      select(notifications).get();
+      (select(notifications)
+            ..orderBy([
+              (t) => OrderingTerm(
+                    expression: t.timestamp,
+                    mode: OrderingMode.desc,
+                  ),
+            ]))
+          .get();
   Future<void> insertNotification(NotificationsCompanion entry) =>
       into(notifications).insertOnConflictUpdate(entry);
   Future<void> deleteNotification(String id) =>
@@ -89,7 +104,14 @@ class AppDatabase extends _$AppDatabase {
 
   // History CRUD
   Future<List<NotificationHistoryData>> getAllHistory() =>
-      select(notificationHistory).get();
+      (select(notificationHistory)
+            ..orderBy([
+              (t) => OrderingTerm(
+                    expression: t.timestamp,
+                    mode: OrderingMode.desc,
+                  ),
+            ]))
+          .get();
   Future<void> insertHistory(NotificationHistoryCompanion entry) =>
       into(notificationHistory).insertOnConflictUpdate(entry);
   Future<void> deleteHistory(String id) =>
