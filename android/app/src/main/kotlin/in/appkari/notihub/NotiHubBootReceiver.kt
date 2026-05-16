@@ -14,9 +14,12 @@ class NotiHubBootReceiver : BroadcastReceiver() {
                 Log.d("NotiHubBootReceiver", "Notification listener not enabled. Prompting user.")
                 showEnableNotificationListenerNotification(context)
             } else {
-                Log.d("NotiHubBootReceiver", "Notification listener is enabled.")
-                // Start the keepalive service so the process stays alive after boot
-                NotiHubKeepaliveService.start(context)
+                if (NotiHubKeepaliveService.wasListeningEnabled(context)) {
+                    Log.d("NotiHubBootReceiver", "Notification listener is enabled and listening was active before reboot.")
+                    NotiHubKeepaliveService.start(context)
+                } else {
+                    Log.d("NotiHubBootReceiver", "Skipping keepalive start: listening was not active before reboot.")
+                }
             }
         }
     }

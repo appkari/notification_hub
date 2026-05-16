@@ -70,11 +70,13 @@ class MainActivity : FlutterActivity() {
                 }
                 "startListening" -> {
                     NotiHubNotificationService.isListening = true
+                    NotiHubKeepaliveService.setListeningEnabled(this, true)
                     NotiHubKeepaliveService.start(this)
                     result.success(true)
                 }
                 "stopListening" -> {
                     NotiHubNotificationService.isListening = false
+                    NotiHubKeepaliveService.setListeningEnabled(this, false)
                     NotiHubKeepaliveService.stop(this)
                     result.success(true)
                 }
