@@ -477,20 +477,14 @@ class NotificationProvider with ChangeNotifier {
         _notifications
             .where((n) => !n.isRemoved)
             .skip(startIndex)
-            .take(pageSize)
-            .toList();
+            .take(pageSize);
 
     for (final notification in paginatedNotifications) {
-      if (!notification.isRemoved) {
-        final packageName = notification.packageName;
-        if (!groupedNotifications.containsKey(packageName)) {
-          groupedNotifications[packageName] = [];
-        }
-        groupedNotifications[packageName]!.add(notification);
-      }
+      groupedNotifications
+          .putIfAbsent(notification.packageName, () => [])
+          .add(notification);
     }
 
-    // Sort notifications within each app by timestamp (newest first)
     groupedNotifications.forEach((key, list) {
       list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     });
