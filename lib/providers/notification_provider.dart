@@ -1,8 +1,10 @@
 import 'dart:async' show StreamSubscription, Timer;
+import 'dart:ui' show AppLifecycleState;
 import 'package:flutter/foundation.dart'
     show
         ChangeNotifier,
-        debugPrint; // Already uses show, no change needed but included for completeness of the block
+        debugPrint;
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import '../models/notification_model.dart'
     show AppNotification, NotificationChannelInfo;
 import '../services/notification_service.dart' show NotificationService;
@@ -50,6 +52,8 @@ class NotificationProvider with ChangeNotifier {
   bool _hasPendingUiUpdate = false;
   static const _notifyDebounceDuration = Duration(milliseconds: 100);
 
+  AppLifecycleListener? _lifecycleListener;
+
   // Getters
   List<AppNotification> get notifications => _notifications;
   List<AppNotification> get notificationHistory => _notificationHistory;
@@ -95,6 +99,7 @@ class NotificationProvider with ChangeNotifier {
     await loadNotifications();
     await loadHistory();
     _startListeningToNotifications();
+    _setupLifecycleListener();
     _isInitialized = true;
     debugPrint(
       'NotificationProvider: Initialization complete. isInitialized: $_isInitialized',
@@ -821,8 +826,38 @@ class NotificationProvider with ChangeNotifier {
     );
   }
 
+  void _setupLifecycleListener() {
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: _onAppLifecycleStateChange,
+    );
+  }
+
+  void _onAppLifecycleStateChange(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _recheckPermissionOnResume();
+    }
+  }
+
+  Future<void> _recheckPermissionOnResume() async {
+    final hasPermission = await _notificationService.isPermissionGranted();
+    if (hasPermission && !_notificationService.isListening) {
+      debugPrint(
+        'NotificationProvider: Permission granted on resume, starting listener.',
+      );
+      await _notificationService.startListening();
+      notifyListeners();
+    } else if (!hasPermission && _notificationService.isListening) {
+      debugPrint(
+        'NotificationProvider: Permission revoked on resume, stopping listener.',
+      );
+      await _notificationService.stopListening();
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
+    _lifecycleListener?.dispose();
     _notifyThrottle?.cancel();
     _subscription?.cancel();
     if (_ownsNotificationService) {
