@@ -98,7 +98,7 @@ class NotiHubNotificationService : NotificationListenerService() {
         // Send a notification to inform the user
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "notihub_service_channel"
-        val channelName = "NotiHub Service Channel"
+        val channelName = getString(R.string.service_channel_name)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
             notificationManager.createNotificationChannel(channel)
@@ -108,8 +108,8 @@ class NotiHubNotificationService : NotificationListenerService() {
         } else {
             Notification.Builder(this)
         }
-        builder.setContentTitle("NotiHub Service Stopped")
-            .setContentText("Notification listener was killed by the system.")
+        builder.setContentTitle(getString(R.string.service_stopped_title))
+            .setContentText(getString(R.string.service_stopped_message))
             .setSmallIcon(android.R.drawable.ic_dialog_alert) // Use a generic system icon for now
             .setAutoCancel(true)
         notificationManager.notify(1001, builder.build())
