@@ -45,6 +45,8 @@ class NotificationListView extends StatelessWidget {
                 child: ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
                   itemCount: appEntries.length,
+                  addAutomaticKeepAlives: false,
+                  addRepaintBoundaries: true,
                   itemBuilder: (context, index) {
                     final packageName = appEntries[index].key;
                     final appNotifications = List<AppNotification>.from(
@@ -57,6 +59,7 @@ class NotificationListView extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     return AppNotificationCard(
+                      key: ValueKey(packageName),
                       packageName: packageName,
                       appNotifications: appNotifications,
                     );
