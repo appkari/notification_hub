@@ -30,6 +30,7 @@ class NotiHubNotificationService : NotificationListenerService() {
         // Debounce support: pending runnables keyed by notification key
         private val debounceHandler = Handler(Looper.getMainLooper())
         private val pendingRunnables = mutableMapOf<String, Runnable>()
+        private val pendingPostedNotifications = mutableMapOf<String, StatusBarNotification>()
         private const val DEBOUNCE_MS = 300L
 
         fun removeNotificationByKey(key: String) {
@@ -127,7 +128,31 @@ class NotiHubNotificationService : NotificationListenerService() {
             Log.d("NotiHubService", "isListening is false, not forwarding notification to Flutter")
             return
         }
-        // Get app name
+
+        // Debounce: cancel any pending send for this key and schedule a fresh one.
+        // This prevents rapid-fire updates (e.g. download/install progress) from
+        // flooding the Flutter side and causing UI jank.
+        val notifKey = sbn.key
+        pendingPostedNotifications[notifKey] = sbn
+        pendingRunnables.remove(notifKey)?.let { debounceHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            pendingRunnables.remove(notifKey)
+            val latestSbn = pendingPostedNotifications.remove(notifKey) ?: return@Runnable
+            forwardPostedNotification(latestSbn)
+        }
+        pendingRunnables[notifKey] = runnable
+        debounceHandler.postDelayed(runnable, DEBOUNCE_MS)
+        
+        Log.d("NotiHubService", "shouldRemoveSystemTrayNotification: $shouldRemoveSystemTrayNotification")
+        // Remove the notification from the system tray if needed and the setting is enabled
+        if (shouldRemoveSystemTrayNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val key = sbn.key
+            programmaticallyRemovedKeys.add(key)
+            cancelNotification(key)
+        }
+    }
+
+    private fun forwardPostedNotification(sbn: StatusBarNotification) {
         val packageManager = applicationContext.packageManager
         val appName = try {
             val applicationInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
@@ -135,8 +160,7 @@ class NotiHubNotificationService : NotificationListenerService() {
         } catch (e: Exception) {
             sbn.packageName
         }
-        
-        // Get notification extras
+
         val extras = sbn.notification.extras
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
@@ -151,12 +175,10 @@ class NotiHubNotificationService : NotificationListenerService() {
         } else {
             null
         }
-        
-        // Store the PendingIntent for later execution
+
         val contentIntent = sbn.notification.contentIntent
         pendingIntents[sbn.key] = contentIntent
-        
-        // Get icon as bitmap and convert to base64
+
         var iconData: String? = null
         try {
             val appInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
@@ -174,10 +196,9 @@ class NotiHubNotificationService : NotificationListenerService() {
             val byteArray = stream.toByteArray()
             iconData = android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
         } catch (e: Exception) {
-            Log.e("NotiHubService", "Error getting app icon: "+e.message)
+            Log.e("NotiHubService", "Error getting app icon: " + e.message)
         }
-        
-        // Build notification data map
+
         val notificationData = mutableMapOf<String, Any?>(
             "packageName" to sbn.packageName,
             "appName" to appName,
@@ -191,33 +212,14 @@ class NotiHubNotificationService : NotificationListenerService() {
             "channelId" to channelId,
             "channelName" to channelName
         )
-        
-        // Add extras as a string representation if available
+
         extras?.keySet()?.forEach { key ->
             extras.get(key)?.let { value ->
                 notificationData["extra_$key"] = value.toString()
             }
         }
 
-        // Debounce: cancel any pending send for this key and schedule a fresh one.
-        // This prevents rapid-fire updates (e.g. download/install progress) from
-        // flooding the Flutter side and causing UI jank.
-        val notifKey = sbn.key
-        pendingRunnables.remove(notifKey)?.let { debounceHandler.removeCallbacks(it) }
-        val runnable = Runnable {
-            pendingRunnables.remove(notifKey)
-            channel?.invokeMethod("onNotificationReceived", notificationData)
-        }
-        pendingRunnables[notifKey] = runnable
-        debounceHandler.postDelayed(runnable, DEBOUNCE_MS)
-        
-        Log.d("NotiHubService", "shouldRemoveSystemTrayNotification: $shouldRemoveSystemTrayNotification")
-        // Remove the notification from the system tray if needed and the setting is enabled
-        if (shouldRemoveSystemTrayNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            val key = sbn.key
-            programmaticallyRemovedKeys.add(key)
-            cancelNotification(key)
-        }
+        channel?.invokeMethod("onNotificationReceived", notificationData)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {

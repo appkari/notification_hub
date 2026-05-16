@@ -44,9 +44,10 @@ class NotificationProvider with ChangeNotifier {
   bool _isInitialized = false;
   StreamSubscription<AppNotification>? _subscription;
 
-  // Debounce rapid notifyListeners() calls triggered by frequent updates
+  // Throttle rapid notifyListeners() calls triggered by frequent updates
   // (e.g. ongoing progress notifications that arrive many times per second).
-  Timer? _notifyDebounce;
+  Timer? _notifyThrottle;
+  bool _hasPendingUiUpdate = false;
   static const _notifyDebounceDuration = Duration(milliseconds: 100);
 
   // Getters
@@ -66,9 +67,19 @@ class NotificationProvider with ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
 
-  void _debouncedNotifyListeners() {
-    _notifyDebounce?.cancel();
-    _notifyDebounce = Timer(_notifyDebounceDuration, notifyListeners);
+  void _scheduleNotifyListeners() {
+    _hasPendingUiUpdate = true;
+    if (_notifyThrottle != null) {
+      return;
+    }
+    _notifyThrottle = Timer(_notifyDebounceDuration, () {
+      _notifyThrottle = null;
+      if (!_hasPendingUiUpdate) {
+        return;
+      }
+      _hasPendingUiUpdate = false;
+      notifyListeners();
+    });
   }
 
   // Initialize the provider
@@ -240,7 +251,7 @@ class NotificationProvider with ChangeNotifier {
       _updatePersistentSummaryNotification();
       // Debounce UI rebuilds so rapid-fire updates (e.g. progress bars) are
       // coalesced into a single frame instead of causing continuous redraws.
-      _debouncedNotifyListeners();
+      _scheduleNotifyListeners();
     });
   }
 
@@ -807,7 +818,7 @@ class NotificationProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    _notifyDebounce?.cancel();
+    _notifyThrottle?.cancel();
     _subscription?.cancel();
     if (_ownsNotificationService) {
       _notificationService.dispose();
