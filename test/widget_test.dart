@@ -44,8 +44,16 @@ void main() {
     await tester.tap(find.text('Grant Permission'));
     await tester.pumpAndSettle();
 
-    expect(provider.requestPermissionCalls, 1);
-    expect(find.text('No notifications yet'), findsOneWidget);
+    // Opens settings and shows guidance SnackBar
+    expect(provider.openNotificationSettingsCalls, 1);
+    expect(provider.requestPermissionCalls, 0);
+    expect(find.text('Notification Access Required'), findsOneWidget);
+    expect(find.text('Open Settings'), findsOneWidget);
+
+    // Tapping the SnackBar action also opens settings
+    await tester.tap(find.text('Open Settings'));
+    await tester.pumpAndSettle();
+    expect(provider.openNotificationSettingsCalls, 2);
   });
 
   testWidgets('renders grouped app cards and clears an app once on swipe', (
@@ -380,6 +388,7 @@ class FakeNotificationProvider extends NotificationProvider {
   final List<AppNotification> _historyValue;
 
   int requestPermissionCalls = 0;
+  int openNotificationSettingsCalls = 0;
   final List<String> clearAppCalls = [];
   final List<String?> executeActionCalls = [];
   final List<String> launchAppCalls = [];
@@ -416,6 +425,11 @@ class FakeNotificationProvider extends NotificationProvider {
 
   @override
   Future<void> loadNotifications() async {}
+
+  @override
+  Future<void> openNotificationSettings() async {
+    openNotificationSettingsCalls += 1;
+  }
 
   @override
   Future<bool> requestPermission() async {

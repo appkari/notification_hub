@@ -298,6 +298,17 @@ class NotificationService {
     }
   }
 
+  // Open notification listener settings page directly
+  Future<void> openNotificationSettings() async {
+    try {
+      await _notificationChannel.invokeMethod('openNotificationSettings');
+    } on PlatformException catch (e) {
+      debugPrint(
+        'NotificationService: Failed to open notification settings: ${e.message}',
+      );
+    }
+  }
+
   // Request notification listening permission (Platform level)
   Future<bool> requestPermission() async {
     debugPrint('NotificationService: Requesting permission...');

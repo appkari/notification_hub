@@ -257,6 +257,11 @@ class NotificationProvider with ChangeNotifier {
     });
   }
 
+  // Open notification listener settings directly
+  Future<void> openNotificationSettings() async {
+    await _notificationService.openNotificationSettings();
+  }
+
   // Request notification listening permission
   Future<bool> requestPermission() async {
     final permissionGranted = await _notificationService.requestPermission();

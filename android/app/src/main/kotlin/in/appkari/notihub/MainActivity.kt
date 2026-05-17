@@ -58,11 +58,28 @@ class MainActivity : FlutterActivity() {
                     if (!isNotificationServiceEnabled()) {
                         val intent = Intent(NOTIFICATION_LISTENER_SETTINGS)
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
+                        try {
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Failed to open notification settings: ${e.message}")
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
                         // Can't know if granted immediately, return false for now
                         result.success(false)
                     } else {
                         result.success(true)
+                    }
+                }
+                "openNotificationSettings" -> {
+                    val intent = Intent(NOTIFICATION_LISTENER_SETTINGS)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try {
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Failed to open notification settings: ${e.message}")
+                        result.error("SETTINGS_ERROR", "Could not open notification settings", null)
                     }
                 }
                 "isPermissionGranted" -> {
