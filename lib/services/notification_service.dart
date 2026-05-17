@@ -78,7 +78,8 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final didSave = await prefs.setBool(_removeIfSourceAppRemovesKey, value);
-      if (!didSave && persistVersion == _removeIfSourceAppRemovesPersistVersion) {
+      if (!didSave &&
+          persistVersion == _removeIfSourceAppRemovesPersistVersion) {
         _removeIfSourceAppRemoves = previousValue;
         debugPrint(
           'NotificationService: Failed to persist removeIfSourceAppRemoves setting (setBool returned false).',

@@ -62,16 +62,10 @@ void main() {
 
     test('respects pagination', () {
       final page0 = provider.getNotificationsByApp(page: 0, pageSize: 2);
-      expect(
-        page0.values.expand((list) => list).length,
-        2,
-      );
+      expect(page0.values.expand((list) => list).length, 2);
 
       final page1 = provider.getNotificationsByApp(page: 1, pageSize: 2);
-      expect(
-        page1.values.expand((list) => list).length,
-        1,
-      );
+      expect(page1.values.expand((list) => list).length, 1);
     });
 
     test('excludes removed notifications', () {
@@ -118,8 +112,18 @@ void main() {
       final provider = FakeNotificationProvider(
         isListening: true,
         notifications: [
-          _notification(id: 'a', packageName: 'com.a', appName: 'A', title: 'N1'),
-          _notification(id: 'b', packageName: 'com.b', appName: 'B', title: 'N2'),
+          _notification(
+            id: 'a',
+            packageName: 'com.a',
+            appName: 'A',
+            title: 'N1',
+          ),
+          _notification(
+            id: 'b',
+            packageName: 'com.b',
+            appName: 'B',
+            title: 'N2',
+          ),
         ],
       );
 
@@ -134,9 +138,24 @@ void main() {
       final provider = FakeNotificationProvider(
         isListening: true,
         notifications: [
-          _notification(id: '1', packageName: 'com.chat', appName: 'Chat', title: 'M1'),
-          _notification(id: '2', packageName: 'com.chat', appName: 'Chat', title: 'M2'),
-          _notification(id: '3', packageName: 'com.mail', appName: 'Mail', title: 'E1'),
+          _notification(
+            id: '1',
+            packageName: 'com.chat',
+            appName: 'Chat',
+            title: 'M1',
+          ),
+          _notification(
+            id: '2',
+            packageName: 'com.chat',
+            appName: 'Chat',
+            title: 'M2',
+          ),
+          _notification(
+            id: '3',
+            packageName: 'com.mail',
+            appName: 'Mail',
+            title: 'E1',
+          ),
         ],
       );
 
@@ -152,8 +171,18 @@ void main() {
       final provider = FakeNotificationProvider(
         isListening: true,
         notifications: [
-          _notification(id: 'x', packageName: 'com.a', appName: 'A', title: 'X'),
-          _notification(id: 'y', packageName: 'com.b', appName: 'B', title: 'Y'),
+          _notification(
+            id: 'x',
+            packageName: 'com.a',
+            appName: 'A',
+            title: 'X',
+          ),
+          _notification(
+            id: 'y',
+            packageName: 'com.b',
+            appName: 'B',
+            title: 'Y',
+          ),
         ],
       );
 
@@ -168,7 +197,12 @@ void main() {
       final provider = FakeNotificationProvider(
         isListening: true,
         notifications: [
-          _notification(id: 'z', packageName: 'com.a', appName: 'A', title: 'Z'),
+          _notification(
+            id: 'z',
+            packageName: 'com.a',
+            appName: 'A',
+            title: 'Z',
+          ),
         ],
       );
 
@@ -200,8 +234,18 @@ void main() {
 
     test('restoreNotifications restores multiple items', () async {
       final items = [
-        _notification(id: 'r1', packageName: 'com.a', appName: 'A', title: 'R1'),
-        _notification(id: 'r2', packageName: 'com.b', appName: 'B', title: 'R2'),
+        _notification(
+          id: 'r1',
+          packageName: 'com.a',
+          appName: 'A',
+          title: 'R1',
+        ),
+        _notification(
+          id: 'r2',
+          packageName: 'com.b',
+          appName: 'B',
+          title: 'R2',
+        ),
       ];
       final provider = FakeNotificationProvider(
         isListening: true,
@@ -339,9 +383,7 @@ class FakeNotificationProvider extends NotificationProvider {
   ) async {
     clearAppCalls.add(packageName);
     final removed =
-        _notificationsValue
-            .where((n) => n.packageName == packageName)
-            .toList();
+        _notificationsValue.where((n) => n.packageName == packageName).toList();
     _notificationsValue.removeWhere((n) => n.packageName == packageName);
     _historyValue.insertAll(0, removed);
     notifyListeners();
@@ -365,9 +407,7 @@ class FakeNotificationProvider extends NotificationProvider {
   }
 
   @override
-  Future<void> restoreNotifications(
-    List<AppNotification> notifications,
-  ) async {
+  Future<void> restoreNotifications(List<AppNotification> notifications) async {
     for (final notification in notifications) {
       _historyValue.removeWhere((item) => item.id == notification.id);
     }

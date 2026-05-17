@@ -1,9 +1,6 @@
 import 'dart:async' show StreamSubscription, Timer;
 import 'dart:ui' show AppLifecycleState;
-import 'package:flutter/foundation.dart'
-    show
-        ChangeNotifier,
-        debugPrint;
+import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import '../models/notification_model.dart'
     show AppNotification, NotificationChannelInfo;
@@ -464,9 +461,7 @@ class NotificationProvider with ChangeNotifier {
       _updatePersistentSummaryNotification();
       notifyListeners();
     } catch (e) {
-      debugPrint(
-        'NotificationProvider: Error removing notification $id: $e',
-      );
+      debugPrint('NotificationProvider: Error removing notification $id: $e');
     }
   }
 
@@ -478,11 +473,10 @@ class NotificationProvider with ChangeNotifier {
     final groupedNotifications = <String, List<AppNotification>>{};
     final startIndex = page * pageSize;
 
-    final paginatedNotifications =
-        _notifications
-            .where((n) => !n.isRemoved)
-            .skip(startIndex)
-            .take(pageSize);
+    final paginatedNotifications = _notifications
+        .where((n) => !n.isRemoved)
+        .skip(startIndex)
+        .take(pageSize);
 
     for (final notification in paginatedNotifications) {
       groupedNotifications

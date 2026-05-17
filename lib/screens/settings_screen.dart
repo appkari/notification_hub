@@ -260,7 +260,8 @@ class SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text(
                       'If enabled, notifications will be removed from this app if the original app removes them.',
                     ),
-                    value: provider.notificationService.removeIfSourceAppRemoves,
+                    value:
+                        provider.notificationService.removeIfSourceAppRemoves,
                     onChanged: (value) {
                       provider.setRemoveIfSourceAppRemoves(value);
                     },
