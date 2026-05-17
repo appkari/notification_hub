@@ -78,7 +78,8 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final didSave = await prefs.setBool(_removeIfSourceAppRemovesKey, value);
-      if (!didSave && persistVersion == _removeIfSourceAppRemovesPersistVersion) {
+      if (!didSave &&
+          persistVersion == _removeIfSourceAppRemovesPersistVersion) {
         _removeIfSourceAppRemoves = previousValue;
         debugPrint(
           'NotificationService: Failed to persist removeIfSourceAppRemoves setting (setBool returned false).',
@@ -294,6 +295,17 @@ class NotificationService {
         );
         // Should return something for unhandled calls
         return Future.value();
+    }
+  }
+
+  // Open notification listener settings page directly
+  Future<void> openNotificationSettings() async {
+    try {
+      await _notificationChannel.invokeMethod('openNotificationSettings');
+    } on PlatformException catch (e) {
+      debugPrint(
+        'NotificationService: Failed to open notification settings: ${e.message}',
+      );
     }
   }
 

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart'
     show
+        BuildContext,
         EdgeInsets,
         ElevatedButton,
         Icons,
         ScaffoldMessenger,
         SnackBar,
+        SnackBarAction,
         Text,
         Widget,
-        BuildContext,
         StatelessWidget;
 import 'package:provider/provider.dart' show Provider;
 
@@ -27,16 +28,22 @@ class PermissionRequestWidget extends StatelessWidget {
       message:
           'This app needs notification access permissions to capture and display notifications.',
       action: ElevatedButton(
-        onPressed: () async {
-          final granted = await provider.requestPermission();
-          if (!context.mounted) return;
-          if (!granted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Permission denied. Please enable in settings.'),
+        onPressed: () {
+          provider.openNotificationSettings();
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Enable "Notification Hub" in the list, then return to the app',
+                ),
+                duration: const Duration(seconds: 8),
+                action: SnackBarAction(
+                  label: 'Open Settings',
+                  onPressed: provider.openNotificationSettings,
+                ),
               ),
             );
-          }
         },
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

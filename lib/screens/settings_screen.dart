@@ -234,18 +234,7 @@ class SettingsScreenState extends State<SettingsScreen> {
                     onTap: () async {
                       if (!hasPermission) {
                         // Open system settings for notification access
-                        await NotificationService().requestPermission();
-                        // Show guidance to user
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please enable Notification Hub in the list and return to the app',
-                              ),
-                              duration: Duration(seconds: 5),
-                            ),
-                          );
-                        }
+                        await NotificationService().openNotificationSettings();
                       }
                     },
                   );
@@ -260,7 +249,8 @@ class SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text(
                       'If enabled, notifications will be removed from this app if the original app removes them.',
                     ),
-                    value: provider.notificationService.removeIfSourceAppRemoves,
+                    value:
+                        provider.notificationService.removeIfSourceAppRemoves,
                     onChanged: (value) {
                       provider.setRemoveIfSourceAppRemoves(value);
                     },
