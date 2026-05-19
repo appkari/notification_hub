@@ -1,39 +1,32 @@
-name: Shorebird Code Push Release
+name: Shorebird Patch (Prod)
+
+# Run manually from the Actions tab whenever you have a Dart-only fix to ship
+# OTA without a Play Store review.  The version in pubspec.yaml must match an
+# existing Shorebird release (created by the Release (Prod) workflow).
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Release environment'
-        required: true
-        default: 'android'
-        type: choice
-        options:
-          - android
 
 jobs:
-  shorebird-release:
+  patch:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      - name: Get Flutter dependencies
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: Install Shorebird
-        run: |
-          dart pub global activate shorebird_cli
+      - uses: shorebirdtech/setup-shorebird@v1
 
-      - name: Authenticate Shorebird
+      - name: Shorebird patch
         run: |
-          shorebird auth firebase-token --stdin <<< "${{ secrets.FIREBASE_TOKEN }}"
-
-      - name: Release with Shorebird
-        run: |
-          shorebird release ${{ github.event.inputs.environment }}
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "Patching release $VERSION …"
+          shorebird patch android --flavor production --release-version="$VERSION"
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
