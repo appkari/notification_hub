@@ -323,6 +323,12 @@ class FakeNotificationProvider extends NotificationProvider {
        _historyValue = List<AppNotification>.from(history ?? const []),
        super(autoInitialize: false, store: _FakeNotificationStore());
 
+  @override
+  bool get isInitialized => true;
+
+  @override
+  String? get initError => null;
+
   bool _isListeningValue;
   final bool requestPermissionResult;
   final List<AppNotification> _notificationsValue;

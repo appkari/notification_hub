@@ -77,8 +77,27 @@ class AppNotificationCard extends StatefulWidget {
 }
 
 class AppNotificationCardState extends State<AppNotificationCard> {
+  // Cached icon future — must not be recreated on every build or FutureBuilder
+  // resets to ConnectionState.waiting on each rebuild, causing icon flicker and
+  // redundant SharedPreferences reads.
+  late Future<Uint8List?> _iconFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _iconFuture = IconCacheService().getIcon(widget.packageName);
+  }
+
+  @override
+  void didUpdateWidget(AppNotificationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.packageName != widget.packageName) {
+      _iconFuture = IconCacheService().getIcon(widget.packageName);
+    }
+  }
+
   Future<void> _showExcludeAppDialog(String packageName) async {
-    showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
@@ -88,34 +107,39 @@ class AppNotificationCardState extends State<AppNotificationCard> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(context, false),
                 child: const Text('Cancel'),
               ),
               TextButton(
-                onPressed: () {
-                  final provider = Provider.of<NotificationProvider>(
-                    context,
-                    listen: false,
-                  );
-                  provider.excludeApp(packageName);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('App will no longer be tracked'),
-                      action: SnackBarAction(
-                        label: 'UNDO',
-                        onPressed: () {
-                          provider.includeApp(packageName);
-                        },
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => Navigator.pop(context, true),
                 child: const Text('Exclude'),
               ),
             ],
           ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = Provider.of<NotificationProvider>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final removed = await provider.excludeApp(packageName);
+
+    if (!mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('App will no longer be tracked'),
+          action: SnackBarAction(
+            label: 'UNDO',
+            onPressed: () async {
+              await provider.includeApp(packageName);
+              await provider.restoreNotifications(removed);
+            },
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
   }
 
   Future<void> _showAppActionsSheet(String packageName, String appName) async {
@@ -353,7 +377,7 @@ class AppNotificationCardState extends State<AppNotificationCard> {
           child: Column(
             children: [
               FutureBuilder<Uint8List?>(
-                future: IconCacheService().getIcon(widget.packageName),
+                future: _iconFuture,
                 builder: (context, snapshot) {
                   Widget leadingWidget;
 

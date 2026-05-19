@@ -33,10 +33,13 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
   bool _hasError = false;
   dynamic _error;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _hasError = false;
+  void setError(dynamic error) {
+    if (mounted) {
+      setState(() {
+        _hasError = true;
+        _error = error;
+      });
+    }
   }
 
   @override
@@ -77,6 +80,6 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
       );
     }
 
-    return const SizedBox.shrink();
+    return widget.child;
   }
 }

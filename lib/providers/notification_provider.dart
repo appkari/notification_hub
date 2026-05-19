@@ -1,6 +1,7 @@
 import 'dart:async' show StreamSubscription, Timer;
 import 'dart:ui' show AppLifecycleState;
-import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
+import 'package:flutter/foundation.dart'
+    show ChangeNotifier, debugPrint, visibleForTesting;
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import '../models/notification_model.dart'
     show AppNotification, NotificationChannelInfo;
@@ -60,6 +61,7 @@ class NotificationProvider with ChangeNotifier {
 
   bool _isLoadingMore = false;
   bool _hasMoreData = true; // Assuming initially there's more data to load
+  String? _initError;
 
   // Rate limiting for debug logs
   DateTime? _lastLogTime;
@@ -67,6 +69,7 @@ class NotificationProvider with ChangeNotifier {
 
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
+  String? get initError => _initError;
 
   void _scheduleNotifyListeners() {
     _hasPendingUiUpdate = true;
@@ -83,24 +86,34 @@ class NotificationProvider with ChangeNotifier {
     });
   }
 
+  @visibleForTesting
+  Future<void> testInitialize() => _initialize();
+
   // Initialize the provider
   Future<void> _initialize() async {
     debugPrint('NotificationProvider: Initializing...');
-    final prefs = await SharedPreferences.getInstance();
-    _historyDays = prefs.getInt('historyDays') ?? 7;
-    await _notificationService.initialize();
-    final hasPermission = await _notificationService.isPermissionGranted();
-    if (hasPermission) {
-      await _notificationService.startListening();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _historyDays = prefs.getInt('historyDays') ?? 7;
+      await _notificationService.initialize();
+      final hasPermission = await _notificationService.isPermissionGranted();
+      if (hasPermission) {
+        await _notificationService.startListening();
+      }
+      await loadNotifications();
+      await loadHistory();
+      _startListeningToNotifications();
+      _setupLifecycleListener();
+      _isInitialized = true;
+      _initError = null;
+      debugPrint(
+        'NotificationProvider: Initialization complete. isInitialized: $_isInitialized',
+      );
+    } catch (e, stack) {
+      debugPrint('NotificationProvider: Initialization failed: $e\n$stack');
+      _isInitialized = true; // Unblock the UI so it doesn't spin forever
+      _initError = e.toString();
     }
-    await loadNotifications();
-    await loadHistory();
-    _startListeningToNotifications();
-    _setupLifecycleListener();
-    _isInitialized = true;
-    debugPrint(
-      'NotificationProvider: Initialization complete. isInitialized: $_isInitialized',
-    );
     notifyListeners();
   }
 
@@ -109,10 +122,14 @@ class NotificationProvider with ChangeNotifier {
     debugPrint('NotificationProvider: Loading notifications from database...');
     try {
       final dbNotifs = await _store.getAllNotifications();
-      _notifications = dbNotifs.map(_fromDbNotification).toList();
+      final excludedApps = await _notificationService.getExcludedApps();
+      _notifications = dbNotifs
+          .map(_fromDbNotification)
+          .where((n) => !excludedApps.contains(n.packageName))
+          .toList();
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       debugPrint(
-        'NotificationProvider: Loaded ${dbNotifs.length} notifications from database.',
+        'NotificationProvider: Loaded ${_notifications.length} notifications from database (${dbNotifs.length - _notifications.length} filtered by exclusion).',
       );
     } catch (e) {
       debugPrint('NotificationProvider: Error loading notifications: $e');
@@ -326,10 +343,36 @@ class NotificationProvider with ChangeNotifier {
     return await _notificationService.isAppExcluded(packageName);
   }
 
-  // Exclude an app from notification capture
-  Future<void> excludeApp(String packageName) async {
+  // Exclude an app from notification capture.
+  // Returns the list of removed notifications so the caller can offer undo.
+  Future<List<AppNotification>> excludeApp(String packageName) async {
     await _notificationService.excludeApp(packageName);
+
+    debugPrint(
+      'NotificationProvider: Excluding app $packageName, removing existing notifications...',
+    );
+
+    // Remove existing notifications for this app from the active list
+    final removed =
+        _notifications.where((n) => n.packageName == packageName).toList();
+    _notifications.removeWhere((n) => n.packageName == packageName);
+
+    // Archive to history and clean up from DB / system tray
+    await _archiveNotifications(removed);
+    for (final notification in removed) {
+      await _notificationService.removeNotificationFromSystemTray(
+        notification.key,
+      );
+      await _store.deleteNotification(notification.id);
+    }
+
+    _updatePersistentSummaryNotification();
     notifyListeners();
+
+    debugPrint(
+      'NotificationProvider: Removed ${removed.length} notifications for excluded app $packageName.',
+    );
+    return removed;
   }
 
   // Include a previously excluded app
@@ -446,15 +489,17 @@ class NotificationProvider with ChangeNotifier {
       }
       final notification = _notifications[index];
 
-      // Add to history before removing
-      await addToHistory(notification, reloadHistory: false);
+      // Persist to history DB and update in-memory history directly — avoids
+      // a full DB reload (loadHistory) for every single notification removal.
+      await _store.insertHistory(_toDbHistory(notification));
+      _notificationHistory.insert(0, notification);
+
       await _notificationService.removeNotificationFromSystemTray(
         notification.key,
       );
 
       // Remove from active notifications
       _notifications.removeAt(index);
-      // Delete from active notifications in the database
       debugPrint(
         'NotificationProvider: Deleting notification $id from active database...',
       );
@@ -462,7 +507,6 @@ class NotificationProvider with ChangeNotifier {
       debugPrint(
         'NotificationProvider: Notification $id deleted from active database.',
       );
-      await loadHistory();
       _updatePersistentSummaryNotification();
       notifyListeners();
     } catch (e) {

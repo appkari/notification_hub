@@ -17,6 +17,9 @@ import 'package:flutter/material.dart'
         OutlineInputBorder,
         Padding,
         Scaffold,
+        ScaffoldMessenger,
+        SnackBar,
+        SnackBarAction,
         State,
         StatefulWidget,
         Text,
@@ -217,12 +220,13 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
                           subtitle: Text(app.packageName),
                           trailing: Checkbox(
                             value: isSelected,
-                            onChanged: (checked) async {
+                             onChanged: (checked) async {
                               final provider =
                                   Provider.of<NotificationProvider>(
                                     context,
                                     listen: false,
                                   );
+                              final messenger = ScaffoldMessenger.of(context);
                               setState(() {
                                 if (checked == true) {
                                   _excludedApps.remove(app.packageName);
@@ -233,7 +237,37 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
                               if (checked == true) {
                                 await provider.includeApp(app.packageName);
                               } else {
-                                await provider.excludeApp(app.packageName);
+                                final removed =
+                                    await provider.excludeApp(app.packageName);
+                                if (!mounted) return;
+                                messenger
+                                  ..clearSnackBars()
+                                  ..showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${app.name} excluded — ${removed.length} notification${removed.length == 1 ? '' : 's'} removed',
+                                      ),
+                                      action: SnackBarAction(
+                                        label: 'UNDO',
+                                        onPressed: () async {
+                                          await provider.includeApp(
+                                            app.packageName,
+                                          );
+                                          await provider.restoreNotifications(
+                                            removed,
+                                          );
+                                          if (mounted) {
+                                            setState(() {
+                                              _excludedApps.remove(
+                                                app.packageName,
+                                              );
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      duration: const Duration(seconds: 5),
+                                    ),
+                                  );
                               }
                               // Refresh the list to reflect changes
                               await _loadApps();

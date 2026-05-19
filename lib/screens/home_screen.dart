@@ -3,6 +3,8 @@ import 'package:flutter/material.dart'
         AlertDialog,
         AppBar,
         BuildContext,
+        Center,
+        CircularProgressIndicator,
         Colors,
         FloatingActionButton,
         FloatingActionButtonLocation,
@@ -173,6 +175,20 @@ class _HomeScreenState extends State<HomeScreen> {
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerFloat,
           body: () {
+            if (!provider.isInitialized) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (provider.initError != null) {
+              return Center(
+                child: EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Could not start',
+                  message: provider.initError!,
+                ),
+              );
+            }
+
             if (!provider.isListening) {
               return const PermissionRequestWidget();
             }

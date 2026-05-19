@@ -76,7 +76,9 @@ class IconCacheService {
       );
 
       if (iconEntry.isNotEmpty) {
-        final base64Icon = iconEntry.split(':')[1];
+        // Use substring instead of split to avoid truncating if the value
+        // ever contains a colon character.
+        final base64Icon = iconEntry.substring(packageName.length + 1);
         final iconBytes = base64Decode(base64Icon);
         _memoryCache[packageName] = iconBytes;
         _touchKey(packageName);

@@ -414,7 +414,9 @@ class NotificationService {
     if (_excludedApps.isEmpty) {
       await _loadExcludedApps();
     }
-    return _excludedApps;
+    // Return a defensive copy so callers cannot mutate internal state,
+    // which would silently bypass persistence in excludeApp/includeApp.
+    return Set<String>.from(_excludedApps);
   }
 
   Future<bool> isAppExcluded(String packageName) async {
@@ -449,7 +451,8 @@ class NotificationService {
     if (_excludedChannels.isEmpty) {
       await _loadExcludedChannels();
     }
-    return _excludedChannels;
+    // Defensive copy — same reason as getExcludedApps.
+    return Set<String>.from(_excludedChannels);
   }
 
   Future<bool> isChannelExcluded(String packageName, String channelId) async {

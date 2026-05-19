@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/notification_provider.dart';
-import '../../models/notification_model.dart';
 import 'app_notification_card.dart';
 
 class NotificationListView extends StatelessWidget {
@@ -18,24 +17,11 @@ class NotificationListView extends StatelessWidget {
                 .where((entry) => entry.value.isNotEmpty)
                 .toList();
 
-        final DateTime veryEarlyDateTime = DateTime.fromMillisecondsSinceEpoch(
-          0,
+        // getNotificationsByApp() already sorts each group descending, so
+        // [0] is the newest notification — no need to fold across all items.
+        appEntries.sort(
+          (a, b) => b.value.first.timestamp.compareTo(a.value.first.timestamp),
         );
-        appEntries.sort((a, b) {
-          final latestTimestampA = a.value
-              .map((n) => n.timestamp)
-              .fold<DateTime>(
-                veryEarlyDateTime,
-                (prev, current) => current.isAfter(prev) ? current : prev,
-              );
-          final latestTimestampB = b.value
-              .map((n) => n.timestamp)
-              .fold<DateTime>(
-                veryEarlyDateTime,
-                (prev, current) => current.isAfter(prev) ? current : prev,
-              );
-          return latestTimestampB.compareTo(latestTimestampA);
-        });
 
         return RefreshIndicator(
           onRefresh: () async => await provider.loadNotifications(),
@@ -49,12 +35,8 @@ class NotificationListView extends StatelessWidget {
                   addRepaintBoundaries: true,
                   itemBuilder: (context, index) {
                     final packageName = appEntries[index].key;
-                    final appNotifications = List<AppNotification>.from(
-                      appEntries[index].value,
-                    );
-                    appNotifications.sort(
-                      (a, b) => b.timestamp.compareTo(a.timestamp),
-                    );
+                    // Already sorted descending by getNotificationsByApp().
+                    final appNotifications = appEntries[index].value;
                     if (appNotifications.isEmpty) {
                       return const SizedBox.shrink();
                     }
