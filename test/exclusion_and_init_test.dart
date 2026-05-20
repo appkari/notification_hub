@@ -42,76 +42,90 @@ void main() {
     });
 
     test(
-        'excludeApp: persists correctly even after caller mutated the returned set',
-        () {
-      final svc = buildFixed();
+      'excludeApp: persists correctly even after caller mutated the returned set',
+      () {
+        final svc = buildFixed();
 
-      final leaked = svc.getExcludedApps(); // copy
-      leaked.add('com.target'); // caller mutates copy — should be harmless
+        final leaked = svc.getExcludedApps(); // copy
+        leaked.add('com.target'); // caller mutates copy — should be harmless
 
-      final added = svc.excludeApp('com.target');
+        final added = svc.excludeApp('com.target');
 
-      // With defensive copy: internalApps did NOT contain 'com.target', so
-      // add() returns true and persistence happens.
-      expect(added, true,
-          reason: 'excludeApp must report that it actually added the entry');
-      expect(svc.getExcludedApps(), contains('com.target'));
-    });
+        // With defensive copy: internalApps did NOT contain 'com.target', so
+        // add() returns true and persistence happens.
+        expect(
+          added,
+          true,
+          reason: 'excludeApp must report that it actually added the entry',
+        );
+        expect(svc.getExcludedApps(), contains('com.target'));
+      },
+    );
 
     test(
-        'OLD bug reproduced: leaky reference causes excludeApp to silently skip persistence',
-        () {
-      final svc = buildLeaky();
+      'OLD bug reproduced: leaky reference causes excludeApp to silently skip persistence',
+      () {
+        final svc = buildLeaky();
 
-      final leaked = svc.getExcludedApps(); // same object as internal set
-      leaked.add('com.target'); // mutates the internal set directly!
+        final leaked = svc.getExcludedApps(); // same object as internal set
+        leaked.add('com.target'); // mutates the internal set directly!
 
-      final added = svc.excludeApp('com.target');
+        final added = svc.excludeApp('com.target');
 
-      // The element was already in the set due to aliasing, so add() returns
-      // false and persistence would have been skipped.
-      expect(added, false, reason: 'demonstrates the aliasing bug');
-    });
+        // The element was already in the set due to aliasing, so add() returns
+        // false and persistence would have been skipped.
+        expect(added, false, reason: 'demonstrates the aliasing bug');
+      },
+    );
 
-    test('includeApp: persists correctly even after caller mutated the returned set',
-        () {
-      final svc = buildFixed();
-      svc.internalApps.add('com.target');
+    test(
+      'includeApp: persists correctly even after caller mutated the returned set',
+      () {
+        final svc = buildFixed();
+        svc.internalApps.add('com.target');
 
-      final leaked = svc.getExcludedApps(); // copy
-      leaked.remove('com.target'); // mutate copy — has no effect on internal
+        final leaked = svc.getExcludedApps(); // copy
+        leaked.remove('com.target'); // mutate copy — has no effect on internal
 
-      final removed = svc.includeApp('com.target');
+        final removed = svc.includeApp('com.target');
 
-      expect(removed, true,
-          reason: 'includeApp must report that it actually removed the entry');
-      expect(svc.getExcludedApps(), isNot(contains('com.target')));
-    });
+        expect(
+          removed,
+          true,
+          reason: 'includeApp must report that it actually removed the entry',
+        );
+        expect(svc.getExcludedApps(), isNot(contains('com.target')));
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
   // Initialization error handling
   // ---------------------------------------------------------------------------
   group('NotificationProvider initialization error handling', () {
-    test('isInitialized becomes true and initError is set on failure', () async {
-      // Provide a store that throws on getAllNotifications to simulate a DB
-      // error during initialization.
-      final provider = NotificationProvider(
-        store: _ThrowingNotificationStore(),
-        autoInitialize: false,
-      );
+    test(
+      'isInitialized becomes true and initError is set on failure',
+      () async {
+        // Provide a store that throws on getAllNotifications to simulate a DB
+        // error during initialization.
+        final provider = NotificationProvider(
+          store: _ThrowingNotificationStore(),
+          autoInitialize: false,
+        );
 
-      expect(provider.isInitialized, false);
+        expect(provider.isInitialized, false);
 
-      // Manually trigger init (autoInitialize was false).
-      await provider.testInitialize();
+        // Manually trigger init (autoInitialize was false).
+        await provider.testInitialize();
 
-      expect(provider.isInitialized, true);
-      expect(provider.initError, isNotNull);
-    });
+        expect(provider.isInitialized, true);
+        expect(provider.initError, isNotNull);
+      },
+    );
 
-    testWidgets('HomeScreen shows loading spinner while not yet initialized',
-        (tester) async {
+    testWidgets('HomeScreen shows loading spinner while not yet initialized', (
+      tester,
+    ) async {
       final provider = _SlowInitProvider();
 
       await tester.pumpWidget(_buildTestApp(provider: provider));
@@ -119,8 +133,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('HomeScreen shows error widget when initError is set',
-        (tester) async {
+    testWidgets('HomeScreen shows error widget when initError is set', (
+      tester,
+    ) async {
       final provider = _ErroredProvider();
 
       await tester.pumpWidget(_buildTestApp(provider: provider));
@@ -136,62 +151,69 @@ void main() {
   // ---------------------------------------------------------------------------
   group('Exclusion undo restores notifications', () {
     test(
-        'excludeApp returns removed list; restoreNotifications brings them back',
-        () async {
-      final provider = _FakeExclusionProvider(
-        notifications: [
-          _notification(
-            id: '1',
-            packageName: 'com.chat',
-            appName: 'Chat',
-            title: 'Msg',
-          ),
-          _notification(
-            id: '2',
-            packageName: 'com.mail',
-            appName: 'Mail',
-            title: 'Email',
-          ),
-        ],
-      );
+      'excludeApp returns removed list; restoreNotifications brings them back',
+      () async {
+        final provider = _FakeExclusionProvider(
+          notifications: [
+            _notification(
+              id: '1',
+              packageName: 'com.chat',
+              appName: 'Chat',
+              title: 'Msg',
+            ),
+            _notification(
+              id: '2',
+              packageName: 'com.mail',
+              appName: 'Mail',
+              title: 'Email',
+            ),
+          ],
+        );
 
-      final removed = await provider.excludeApp('com.chat');
+        final removed = await provider.excludeApp('com.chat');
 
-      expect(removed, hasLength(1));
-      expect(provider.notifications.map((n) => n.packageName),
-          isNot(contains('com.chat')));
+        expect(removed, hasLength(1));
+        expect(
+          provider.notifications.map((n) => n.packageName),
+          isNot(contains('com.chat')),
+        );
 
-      // Undo
-      await provider.includeApp('com.chat');
-      await provider.restoreNotifications(removed);
+        // Undo
+        await provider.includeApp('com.chat');
+        await provider.restoreNotifications(removed);
 
-      expect(provider.notifications.map((n) => n.packageName),
-          contains('com.chat'));
-    });
+        expect(
+          provider.notifications.map((n) => n.packageName),
+          contains('com.chat'),
+        );
+      },
+    );
 
-    test('removeNotification updates history in-memory without full DB reload',
-        () async {
-      final store = _CountingNotificationStore();
-      final provider = _FakeExclusionProvider(
-        notifications: [
-          _notification(
-            id: 'x',
-            packageName: 'com.a',
-            appName: 'A',
-            title: 'X',
-          ),
-        ],
-        store: store,
-      );
+    test(
+      'removeNotification updates history in-memory without full DB reload',
+      () async {
+        final store = _CountingNotificationStore();
+        final provider = _FakeExclusionProvider(
+          notifications: [
+            _notification(
+              id: 'x',
+              packageName: 'com.a',
+              appName: 'A',
+              title: 'X',
+            ),
+          ],
+          store: store,
+        );
 
-      await provider.removeNotification('x');
+        await provider.removeNotification('x');
 
-      expect(provider.notifications, isEmpty);
-      // History should contain the removed notification in memory.
-      expect(provider.notificationHistory.map((n) => n.id), contains('x'));
-      // getAllHistory should NOT have been called (no full reload).
-      expect(store.getAllHistoryCalls, 0);
-    });
+        expect(provider.notifications, isEmpty);
+        // History should contain the removed notification in memory.
+        expect(provider.notificationHistory.map((n) => n.id), contains('x'));
+        // getAllHistory should NOT have been called (no full reload).
+        expect(store.getAllHistoryCalls, 0);
+      },
+    );
   });
 }
 
@@ -215,13 +237,13 @@ AppNotification _notification({
   );
 }
 
-Widget _buildTestApp(
-    {required NotificationProvider provider, Widget? child}) {
+Widget _buildTestApp({required NotificationProvider provider, Widget? child}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<NotificationProvider>.value(value: provider),
       ChangeNotifierProvider<SubscriptionProvider>(
-          create: (_) => SubscriptionProvider()),
+        create: (_) => SubscriptionProvider(),
+      ),
     ],
     child: MaterialApp(home: child ?? const HomeScreen()),
   );
@@ -239,10 +261,7 @@ class _FakeExclusionProvider extends NotificationProvider {
   }) : _notifs = List<AppNotification>.from(notifications ?? []),
        _history = [],
        _excluded = {},
-       super(
-         autoInitialize: false,
-         store: store ?? _NoOpNotificationStore(),
-       );
+       super(autoInitialize: false, store: store ?? _NoOpNotificationStore());
 
   final List<AppNotification> _notifs;
   final List<AppNotification> _history;
@@ -263,8 +282,7 @@ class _FakeExclusionProvider extends NotificationProvider {
   @override
   Future<List<AppNotification>> excludeApp(String packageName) async {
     _excluded.add(packageName);
-    final removed =
-        _notifs.where((n) => n.packageName == packageName).toList();
+    final removed = _notifs.where((n) => n.packageName == packageName).toList();
     _notifs.removeWhere((n) => n.packageName == packageName);
     _history.insertAll(0, removed);
     notifyListeners();
@@ -305,7 +323,7 @@ class _FakeExclusionProvider extends NotificationProvider {
 /// Provider that never completes initialization — simulates slow startup.
 class _SlowInitProvider extends NotificationProvider {
   _SlowInitProvider()
-      : super(autoInitialize: false, store: _NoOpNotificationStore());
+    : super(autoInitialize: false, store: _NoOpNotificationStore());
 
   @override
   bool get isInitialized => false;
@@ -317,7 +335,7 @@ class _SlowInitProvider extends NotificationProvider {
 /// Provider that is "initialized" but has an error set.
 class _ErroredProvider extends NotificationProvider {
   _ErroredProvider()
-      : super(autoInitialize: false, store: _NoOpNotificationStore());
+    : super(autoInitialize: false, store: _NoOpNotificationStore());
 
   @override
   bool get isInitialized => true;
@@ -346,15 +364,18 @@ class _ThrowingNotificationStore implements NotificationStore {
   Future<List<db.NotificationHistoryData>> getAllHistory() async => [];
   @override
   Future<List<db.Notification>> getPaginatedNotifications(
-          int offset, int limit) async =>
-      [];
+    int offset,
+    int limit,
+  ) async => [];
   @override
   Future<void> insertHistory(db.NotificationHistoryCompanion entry) async {}
   @override
   Future<void> insertNotification(db.NotificationsCompanion entry) async {}
   @override
-  Future<void> restoreFromHistory(List<db.NotificationsCompanion> entries,
-      List<String> historyIds) async {}
+  Future<void> restoreFromHistory(
+    List<db.NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) async {}
 }
 
 /// Store that counts getAllHistory calls so we can assert it is NOT called
@@ -382,15 +403,18 @@ class _CountingNotificationStore implements NotificationStore {
   Future<List<db.Notification>> getAllNotifications() async => [];
   @override
   Future<List<db.Notification>> getPaginatedNotifications(
-          int offset, int limit) async =>
-      [];
+    int offset,
+    int limit,
+  ) async => [];
   @override
   Future<void> insertHistory(db.NotificationHistoryCompanion entry) async {}
   @override
   Future<void> insertNotification(db.NotificationsCompanion entry) async {}
   @override
-  Future<void> restoreFromHistory(List<db.NotificationsCompanion> entries,
-      List<String> historyIds) async {}
+  Future<void> restoreFromHistory(
+    List<db.NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) async {}
 }
 
 /// Pure-Dart replica of the add/remove logic in NotificationService so the
@@ -428,13 +452,16 @@ class _NoOpNotificationStore implements NotificationStore {
   Future<List<db.Notification>> getAllNotifications() async => [];
   @override
   Future<List<db.Notification>> getPaginatedNotifications(
-          int offset, int limit) async =>
-      [];
+    int offset,
+    int limit,
+  ) async => [];
   @override
   Future<void> insertHistory(db.NotificationHistoryCompanion entry) async {}
   @override
   Future<void> insertNotification(db.NotificationsCompanion entry) async {}
   @override
-  Future<void> restoreFromHistory(List<db.NotificationsCompanion> entries,
-      List<String> historyIds) async {}
+  Future<void> restoreFromHistory(
+    List<db.NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) async {}
 }

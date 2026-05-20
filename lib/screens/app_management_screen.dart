@@ -220,7 +220,7 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
                           subtitle: Text(app.packageName),
                           trailing: Checkbox(
                             value: isSelected,
-                             onChanged: (checked) async {
+                            onChanged: (checked) async {
                               final provider =
                                   Provider.of<NotificationProvider>(
                                     context,
@@ -237,8 +237,9 @@ class _AppManagementScreenState extends State<AppManagementScreen> {
                               if (checked == true) {
                                 await provider.includeApp(app.packageName);
                               } else {
-                                final removed =
-                                    await provider.excludeApp(app.packageName);
+                                final removed = await provider.excludeApp(
+                                  app.packageName,
+                                );
                                 if (!mounted) return;
                                 messenger
                                   ..clearSnackBars()

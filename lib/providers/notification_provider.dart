@@ -123,10 +123,11 @@ class NotificationProvider with ChangeNotifier {
     try {
       final dbNotifs = await _store.getAllNotifications();
       final excludedApps = await _notificationService.getExcludedApps();
-      _notifications = dbNotifs
-          .map(_fromDbNotification)
-          .where((n) => !excludedApps.contains(n.packageName))
-          .toList();
+      _notifications =
+          dbNotifs
+              .map(_fromDbNotification)
+              .where((n) => !excludedApps.contains(n.packageName))
+              .toList();
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       debugPrint(
         'NotificationProvider: Loaded ${_notifications.length} notifications from database (${dbNotifs.length - _notifications.length} filtered by exclusion).',
