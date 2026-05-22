@@ -219,7 +219,9 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         provider: provider,
-        child: Scaffold(body: NotificationItemWidget(notification: notification)),
+        child: Scaffold(
+          body: NotificationItemWidget(notification: notification),
+        ),
       ),
     );
 
