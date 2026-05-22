@@ -22,7 +22,6 @@ import 'package:flutter/material.dart'
         Icon,
         Icons,
         SizedBox,
-        SnackBarBehavior,
         SnackBarAction,
         Colors,
         debugPrint;
@@ -95,49 +94,36 @@ class NotificationItemWidget extends StatelessWidget {
           debugPrint('App launch result: $success');
         }
 
-        // Show user feedback
-        if (context.mounted) {
-          if (success) {
-            // Optional: Show brief success feedback
-            ScaffoldMessenger.of(context).clearSnackBars();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Opened ${notification.appName}'),
-                duration: const Duration(seconds: 1),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          } else {
-            // Show error feedback
-            ScaffoldMessenger.of(context).clearSnackBars();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Could not open ${notification.appName}'),
-                duration: const Duration(seconds: 2),
-                backgroundColor: Colors.red[300],
-                action: SnackBarAction(
-                  label: 'Try Again',
-                  textColor: Colors.white,
-                  onPressed: () async {
-                    // Try launching the app directly as a last resort
-                    final retrySuccess = await provider.launchApp(
-                      notification.packageName,
-                    );
-                    if (!retrySuccess && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${notification.appName} could not be opened. It may have been uninstalled.',
-                          ),
-                          duration: const Duration(seconds: 3),
+        // Only show feedback on failure — success is self-evident since the
+        // target app opens in front of the user.
+        if (!success && context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open ${notification.appName}'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.red[300],
+              action: SnackBarAction(
+                label: 'Try Again',
+                textColor: Colors.white,
+                onPressed: () async {
+                  final retrySuccess = await provider.launchApp(
+                    notification.packageName,
+                  );
+                  if (!retrySuccess && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '${notification.appName} could not be opened. It may have been uninstalled.',
                         ),
-                      );
-                    }
-                  },
-                ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                },
               ),
-            );
-          }
+            ),
+          );
         }
       },
       onLongPress: () {
