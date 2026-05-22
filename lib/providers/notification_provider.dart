@@ -124,10 +124,21 @@ class NotificationProvider with ChangeNotifier {
     try {
       final dbNotifs = await _store.getAllNotifications();
       final excludedApps = await _notificationService.getExcludedApps();
+      final excludedChannels = await _notificationService.getExcludedChannelKeys();
       _notifications =
           dbNotifs
               .map(_fromDbNotification)
-              .where((n) => !excludedApps.contains(n.packageName))
+              .where(
+                (n) =>
+                    !excludedApps.contains(n.packageName) &&
+                    (n.channelId == null ||
+                        !excludedChannels.contains(
+                          _notificationService.excludedChannelKey(
+                            n.packageName,
+                            n.channelId!,
+                          ),
+                        )),
+              )
               .toList();
       _paginationOffset = dbNotifs.length;
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -640,10 +651,21 @@ class NotificationProvider with ChangeNotifier {
       _paginationOffset += newNotifications.length;
 
       final excludedApps = await _notificationService.getExcludedApps();
+      final excludedChannels = await _notificationService.getExcludedChannelKeys();
       final filtered =
           newNotifications
               .map(_fromDbNotification)
-              .where((n) => !excludedApps.contains(n.packageName))
+              .where(
+                (n) =>
+                    !excludedApps.contains(n.packageName) &&
+                    (n.channelId == null ||
+                        !excludedChannels.contains(
+                          _notificationService.excludedChannelKey(
+                            n.packageName,
+                            n.channelId!,
+                          ),
+                        )),
+              )
               .toList();
       _notifications.addAll(filtered);
 
