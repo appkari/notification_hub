@@ -475,6 +475,7 @@ class NotificationProvider with ChangeNotifier {
       (n) => n.packageName == packageName && n.channelId == channelId,
     );
     _updatePersistentSummaryNotification();
+    notifyListeners();
   }
 
   // Add method to remove a single notification
