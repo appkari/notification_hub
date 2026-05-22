@@ -289,6 +289,71 @@ void main() {
   });
 
   group('NotificationProvider.loadMoreNotifications', () {
+    test('loadNotifications filters out excluded channels from stored data', () async {
+      final service = NotificationService();
+      await service.excludeChannel('com.chat', 'social');
+      final store = _LoadMoreNotificationStore(
+        allNotifications: [
+          _dbNotification(
+            id: 'excluded-channel',
+            packageName: 'com.chat',
+            title: 'Excluded channel',
+            channelId: 'social',
+          ),
+          _dbNotification(
+            id: 'included-channel',
+            packageName: 'com.chat',
+            title: 'Included channel',
+            channelId: 'updates',
+          ),
+        ],
+      );
+      final provider = NotificationProvider(
+        autoInitialize: false,
+        store: store,
+        notificationService: service,
+      );
+
+      await provider.loadNotifications();
+
+      expect(provider.notifications, hasLength(1));
+      expect(provider.notifications.single.id, 'included-channel');
+    });
+
+    test('loadMoreNotifications filters out excluded channels', () async {
+      final service = NotificationService();
+      await service.excludeChannel('com.chat', 'social');
+      final store = _LoadMoreNotificationStore(
+        paginatedNotifications: {
+          0: [
+            _dbNotification(
+              id: 'excluded-channel',
+              packageName: 'com.chat',
+              title: 'Excluded channel',
+              channelId: 'social',
+            ),
+            _dbNotification(
+              id: 'included-channel',
+              packageName: 'com.chat',
+              title: 'Included channel',
+              channelId: 'updates',
+            ),
+          ],
+        },
+      );
+      final provider = NotificationProvider(
+        autoInitialize: false,
+        store: store,
+        notificationService: service,
+      );
+
+      final hasMoreData = await provider.loadMoreNotifications();
+
+      expect(hasMoreData, isFalse);
+      expect(provider.notifications, hasLength(1));
+      expect(provider.notifications.single.id, 'included-channel');
+    });
+
     test(
       'advances DB pagination offset even when a full fetched page is excluded',
       () async {
@@ -531,10 +596,12 @@ class _LoadMoreNotificationStore implements NotificationStore {
   _LoadMoreNotificationStore({
     this.shouldThrowOnPaginatedRead = false,
     this.paginatedNotifications = const {},
+    this.allNotifications = const [],
   });
 
   final bool shouldThrowOnPaginatedRead;
   final Map<int, List<db.Notification>> paginatedNotifications;
+  final List<db.Notification> allNotifications;
   final List<int> requestedOffsets = [];
 
   @override
@@ -550,7 +617,7 @@ class _LoadMoreNotificationStore implements NotificationStore {
   @override
   Future<List<db.NotificationHistoryData>> getAllHistory() async => [];
   @override
-  Future<List<db.Notification>> getAllNotifications() async => [];
+  Future<List<db.Notification>> getAllNotifications() async => allNotifications;
   @override
   Future<List<db.Notification>> getPaginatedNotifications(
     int offset,
@@ -578,6 +645,8 @@ db.Notification _dbNotification({
   required String id,
   required String packageName,
   required String title,
+  String? channelId,
+  String? channelName,
 }) {
   return db.Notification(
     id: id,
@@ -588,5 +657,7 @@ db.Notification _dbNotification({
     timestamp: DateTime.now(),
     isRemoved: false,
     hasContentIntent: false,
+    channelId: channelId,
+    channelName: channelName,
   );
 }
