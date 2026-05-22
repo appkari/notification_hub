@@ -124,7 +124,8 @@ class NotificationProvider with ChangeNotifier {
     try {
       final dbNotifs = await _store.getAllNotifications();
       final excludedApps = await _notificationService.getExcludedApps();
-      final excludedChannels = await _notificationService.getExcludedChannelKeys();
+      final excludedChannels =
+          await _notificationService.getExcludedChannelKeys();
       _notifications =
           dbNotifs
               .map(_fromDbNotification)
@@ -651,7 +652,8 @@ class NotificationProvider with ChangeNotifier {
       _paginationOffset += newNotifications.length;
 
       final excludedApps = await _notificationService.getExcludedApps();
-      final excludedChannels = await _notificationService.getExcludedChannelKeys();
+      final excludedChannels =
+          await _notificationService.getExcludedChannelKeys();
       final filtered =
           newNotifications
               .map(_fromDbNotification)
