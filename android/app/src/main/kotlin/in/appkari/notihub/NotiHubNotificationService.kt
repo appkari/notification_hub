@@ -227,6 +227,12 @@ class NotiHubNotificationService : NotificationListenerService() {
         // Note: onNotificationRemoved is called for both user and programmatic removals.
         // Dart side now ignores programmatic removals using a key tracking set.
         Log.d("NotiHubService", "Notification removed: \\${sbn.key}")
+
+        // Cancel any pending debounced post for this key so a stale "new"
+        // notification is never forwarded to Flutter after the removal.
+        val notifKey = sbn.key
+        pendingRunnables.remove(notifKey)?.let { debounceHandler.removeCallbacks(it) }
+        pendingPostedNotifications.remove(notifKey)
         val packageManager = applicationContext.packageManager
         val appName = try {
             val applicationInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
