@@ -157,12 +157,18 @@ class NotificationProvider with ChangeNotifier {
   Future<void> loadHistory() async {
     debugPrint('NotificationProvider: Loading history from database...');
     try {
-      final cutoff = DateTime.now().subtract(Duration(days: _historyDays));
-      // Remove old history
-      await _store.deleteHistoryOlderThan(cutoff);
+      // Re-read the retention setting so changes from the settings screen
+      // take effect without restarting the app.
+      final prefs = await SharedPreferences.getInstance();
+      _historyDays = prefs.getInt('historyDays') ?? 7;
+
+      if (_historyDays > 0) {
+        final cutoff = DateTime.now().subtract(Duration(days: _historyDays));
+        await _store.deleteHistoryOlderThan(cutoff);
+      }
+      // When _historyDays == 0 ("Forever"), skip deletion entirely.
       _notificationHistory =
           (await _store.getAllHistory())
-              .where((h) => h.timestamp.isAfter(cutoff))
               .map(_fromDbNotificationHistory)
               .toList()
             ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
