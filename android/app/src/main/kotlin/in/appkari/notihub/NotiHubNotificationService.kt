@@ -230,9 +230,9 @@ class NotiHubNotificationService : NotificationListenerService() {
 
         // Cancel any pending debounced post for this key so a stale "new"
         // notification is never forwarded to Flutter after the removal.
-        val notifKey = sbn.key
-        pendingRunnables.remove(notifKey)?.let { debounceHandler.removeCallbacks(it) }
-        pendingPostedNotifications.remove(notifKey)
+        val key = sbn.key
+        pendingRunnables.remove(key)?.let { debounceHandler.removeCallbacks(it) }
+        pendingPostedNotifications.remove(key)
         val packageManager = applicationContext.packageManager
         val appName = try {
             val applicationInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
@@ -280,7 +280,7 @@ class NotiHubNotificationService : NotificationListenerService() {
             "body" to text,
             "id" to sbn.id,
             "tag" to sbn.tag,
-            "key" to sbn.key,
+            "key" to key,
             "iconData" to iconData,
             "channelId" to channelId,
             "channelName" to channelName
@@ -290,7 +290,6 @@ class NotiHubNotificationService : NotificationListenerService() {
                 notificationData["extra_$key"] = value.toString()
             }
         }
-        val key = sbn.key
         pendingIntents.remove(key)
         if (programmaticallyRemovedKeys.remove(key)) {
             notificationData["programmatic"] = true
