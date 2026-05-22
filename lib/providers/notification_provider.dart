@@ -627,7 +627,13 @@ class NotificationProvider with ChangeNotifier {
       pageSize,
     );
 
-    _notifications.addAll(newNotifications.map(_fromDbNotification));
+    final excludedApps = await _notificationService.getExcludedApps();
+    final filtered =
+        newNotifications
+            .map(_fromDbNotification)
+            .where((n) => !excludedApps.contains(n.packageName))
+            .toList();
+    _notifications.addAll(filtered);
 
     _isLoadingMore = false;
     _hasMoreData =
