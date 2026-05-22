@@ -254,25 +254,9 @@ class NotiHubNotificationService : NotificationListenerService() {
         } else {
             null
         }
-        var iconData: String? = null
-        try {
-            val appInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
-            val drawable = appInfo.loadIcon(packageManager)
-            val bitmap = Bitmap.createBitmap(
-                drawable.intrinsicWidth,
-                drawable.intrinsicHeight,
-                Bitmap.Config.ARGB_8888
-            )
-            val canvas = Canvas(bitmap)
-            drawable.setBounds(0, 0, canvas.width, canvas.height)
-            drawable.draw(canvas)
-            val stream = java.io.ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            val byteArray = stream.toByteArray()
-            iconData = android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
-        } catch (e: Exception) {
-            Log.e("NotiHubService", "Error getting app icon: "+e.message)
-        }
+        // Skip icon encoding on removal — the Flutter side already has the
+        // icon cached from onNotificationPosted and does not use it from
+        // removal events. Encoding a full-resolution PNG here is pure waste.
         val notificationData = mutableMapOf<String, Any?>(
             "packageName" to sbn.packageName,
             "appName" to appName,
@@ -281,7 +265,7 @@ class NotiHubNotificationService : NotificationListenerService() {
             "id" to sbn.id,
             "tag" to sbn.tag,
             "key" to key,
-            "iconData" to iconData,
+            "iconData" to null,
             "channelId" to channelId,
             "channelName" to channelName
         )
