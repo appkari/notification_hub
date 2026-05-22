@@ -193,7 +193,9 @@ void main() {
 
       expect(provider.executeActionCalls, ['notif-key']);
       expect(provider.launchAppCalls, ['com.mail']);
-      expect(find.text('Opened Mail'), findsOneWidget);
+      // Success snackbar was removed — success is self-evident since the
+      // target app opens in front of the user.
+      expect(find.text('Opened Mail'), findsNothing);
     },
   );
 
