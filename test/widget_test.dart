@@ -199,6 +199,44 @@ void main() {
     },
   );
 
+  testWidgets('live notification tap shows error snackbar on failure', (
+    tester,
+  ) async {
+    final provider = FakeNotificationProvider(
+      isListening: true,
+      executeActionResult: false,
+      launchAppResult: false,
+    );
+    final notification = _notification(
+      id: 'open-fail',
+      packageName: 'com.mail',
+      appName: 'Mail',
+      title: 'Open inbox',
+      hasContentIntent: true,
+      key: 'notif-key-fail',
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        provider: provider,
+        child: Scaffold(body: NotificationItemWidget(notification: notification)),
+      ),
+    );
+
+    await tester.tap(find.text('Open inbox'));
+    await tester.pumpAndSettle();
+
+    expect(provider.executeActionCalls, ['notif-key-fail']);
+    expect(provider.launchAppCalls, ['com.mail']);
+    expect(find.text('Could not open Mail'), findsOneWidget);
+    expect(find.text('Try Again'), findsOneWidget);
+
+    await tester.tap(find.text('Try Again'));
+    await tester.pumpAndSettle();
+
+    expect(provider.launchAppCalls, ['com.mail', 'com.mail']);
+  });
+
   testWidgets('swiping app group shows undo and restores notifications', (
     tester,
   ) async {
