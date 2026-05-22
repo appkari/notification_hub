@@ -156,12 +156,18 @@ class NotificationProvider with ChangeNotifier {
 
   Future<void> loadHistory() async {
     debugPrint('NotificationProvider: Loading history from database...');
+    // Re-read the retention setting so changes from the settings screen
+    // take effect without restarting the app.
     try {
-      // Re-read the retention setting so changes from the settings screen
-      // take effect without restarting the app.
       final prefs = await SharedPreferences.getInstance();
-      _historyDays = prefs.getInt('historyDays') ?? 7;
+      _historyDays = prefs.getInt('historyDays') ?? _historyDays;
+    } catch (e) {
+      debugPrint(
+        'NotificationProvider: Failed to read historyDays preference, using existing value ($_historyDays): $e',
+      );
+    }
 
+    try {
       if (_historyDays > 0) {
         final cutoff = DateTime.now().subtract(Duration(days: _historyDays));
         await _store.deleteHistoryOlderThan(cutoff);
