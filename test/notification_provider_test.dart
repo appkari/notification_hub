@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:notihub/database/app_database.dart' as db;
 import 'package:notihub/models/notification_model.dart';
 import 'package:notihub/providers/notification_provider.dart';
+import 'package:notihub/services/notification_service.dart';
 import 'package:notihub/services/notification_store.dart';
 
 void main() {
@@ -286,6 +287,70 @@ void main() {
       expect(provider.isListening, false);
     });
   });
+
+  group('NotificationProvider.loadMoreNotifications', () {
+    test(
+      'advances DB pagination offset even when a full fetched page is excluded',
+      () async {
+        final service = NotificationService();
+        await service.excludeApp('com.excluded');
+        final store = _LoadMoreNotificationStore(
+          paginatedNotifications: {
+            0: List<db.Notification>.generate(
+              20,
+              (index) => _dbNotification(
+                id: 'excluded-$index',
+                packageName: 'com.excluded',
+                title: 'Excluded $index',
+              ),
+            ),
+            20: [
+              _dbNotification(
+                id: 'included-1',
+                packageName: 'com.included',
+                title: 'Included 1',
+              ),
+            ],
+          },
+        );
+        final provider = NotificationProvider(
+          autoInitialize: false,
+          store: store,
+          notificationService: service,
+        );
+
+        final hasMoreAfterFirstPage = await provider.loadMoreNotifications();
+
+        expect(hasMoreAfterFirstPage, isTrue);
+        expect(provider.notifications, isEmpty);
+        expect(store.requestedOffsets, [0]);
+
+        final hasMoreAfterSecondPage = await provider.loadMoreNotifications();
+
+        expect(hasMoreAfterSecondPage, isFalse);
+        expect(store.requestedOffsets, [0, 20]);
+        expect(provider.notifications, hasLength(1));
+        expect(provider.notifications.single.packageName, 'com.included');
+      },
+    );
+
+    test(
+      'resets loading state if pagination throws to avoid blocking retries',
+      () async {
+        final provider = NotificationProvider(
+          autoInitialize: false,
+          store: _LoadMoreNotificationStore(shouldThrowOnPaginatedRead: true),
+          notificationService: NotificationService(),
+        );
+
+        await expectLater(
+          provider.loadMoreNotifications(),
+          throwsA(isA<StateError>()),
+        );
+        expect(provider.isLoadingMore, isFalse);
+      },
+    );
+  });
 }
 
 AppNotification _notification({
@@ -460,4 +525,68 @@ class _FakeNotificationStore implements NotificationStore {
     List<db.NotificationsCompanion> entries,
     List<String> historyIds,
   ) async {}
+}
+
+class _LoadMoreNotificationStore implements NotificationStore {
+  _LoadMoreNotificationStore({
+    this.shouldThrowOnPaginatedRead = false,
+    this.paginatedNotifications = const {},
+  });
+
+  final bool shouldThrowOnPaginatedRead;
+  final Map<int, List<db.Notification>> paginatedNotifications;
+  final List<int> requestedOffsets = [];
+
+  @override
+  Future<void> clearHistory() async {}
+  @override
+  Future<void> clearNotifications() async {}
+  @override
+  Future<void> deleteHistory(String id) async {}
+  @override
+  Future<void> deleteHistoryOlderThan(DateTime cutoff) async {}
+  @override
+  Future<void> deleteNotification(String id) async {}
+  @override
+  Future<List<db.NotificationHistoryData>> getAllHistory() async => [];
+  @override
+  Future<List<db.Notification>> getAllNotifications() async => [];
+  @override
+  Future<List<db.Notification>> getPaginatedNotifications(
+    int offset,
+    int limit,
+  ) async {
+    requestedOffsets.add(offset);
+    if (shouldThrowOnPaginatedRead) {
+      throw StateError('Simulated paginated read failure');
+    }
+    return paginatedNotifications[offset] ?? [];
+  }
+
+  @override
+  Future<void> insertHistory(db.NotificationHistoryCompanion entry) async {}
+  @override
+  Future<void> insertNotification(db.NotificationsCompanion entry) async {}
+  @override
+  Future<void> restoreFromHistory(
+    List<db.NotificationsCompanion> entries,
+    List<String> historyIds,
+  ) async {}
+}
+
+db.Notification _dbNotification({
+  required String id,
+  required String packageName,
+  required String title,
+}) {
+  return db.Notification(
+    id: id,
+    packageName: packageName,
+    appName: packageName,
+    title: title,
+    body: 'Body',
+    timestamp: DateTime.now(),
+    isRemoved: false,
+    hasContentIntent: false,
+  );
 }

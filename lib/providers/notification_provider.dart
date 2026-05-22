@@ -61,6 +61,7 @@ class NotificationProvider with ChangeNotifier {
 
   bool _isLoadingMore = false;
   bool _hasMoreData = true; // Assuming initially there's more data to load
+  int _paginationOffset = 0;
   String? _initError;
 
   // Rate limiting for debug logs
@@ -128,6 +129,7 @@ class NotificationProvider with ChangeNotifier {
               .map(_fromDbNotification)
               .where((n) => !excludedApps.contains(n.packageName))
               .toList();
+      _paginationOffset = dbNotifs.length;
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       debugPrint(
         'NotificationProvider: Loaded ${_notifications.length} notifications from database (${dbNotifs.length - _notifications.length} filtered by exclusion).',
@@ -138,12 +140,14 @@ class NotificationProvider with ChangeNotifier {
       try {
         await _store.clearNotifications();
         _notifications = [];
+        _paginationOffset = 0;
         debugPrint('NotificationProvider: Database cleared due to error.');
       } catch (clearError) {
         debugPrint(
           'NotificationProvider: Error clearing database: $clearError',
         );
         _notifications = [];
+        _paginationOffset = 0;
       }
     }
     _updatePersistentSummaryNotification();
@@ -619,29 +623,30 @@ class NotificationProvider with ChangeNotifier {
     _isLoadingMore = true;
     notifyListeners();
 
-    final currentLength = _notifications.length;
     final pageSize = 20;
+    try {
+      final newNotifications = await _store.getPaginatedNotifications(
+        _paginationOffset,
+        pageSize,
+      );
+      _paginationOffset += newNotifications.length;
 
-    final newNotifications = await _store.getPaginatedNotifications(
-      currentLength, // Start from the current number of notifications
-      pageSize,
-    );
+      final excludedApps = await _notificationService.getExcludedApps();
+      final filtered =
+          newNotifications
+              .map(_fromDbNotification)
+              .where((n) => !excludedApps.contains(n.packageName))
+              .toList();
+      _notifications.addAll(filtered);
 
-    final excludedApps = await _notificationService.getExcludedApps();
-    final filtered =
-        newNotifications
-            .map(_fromDbNotification)
-            .where((n) => !excludedApps.contains(n.packageName))
-            .toList();
-    _notifications.addAll(filtered);
-
-    _isLoadingMore = false;
-    _hasMoreData =
-        newNotifications.length ==
-        pageSize; // Assume more data if we got a full page
-    notifyListeners();
-
-    return _hasMoreData;
+      _hasMoreData =
+          newNotifications.length ==
+          pageSize; // Assume more data if we got a full page
+      return _hasMoreData;
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
   }
 
   // Send a test notification
