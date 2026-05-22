@@ -216,8 +216,13 @@ class NotificationProvider with ChangeNotifier {
       }
 
       if (notification.isRemoved) {
-        // Find the notification by id
-        final idx = _notifications.indexWhere((n) => n.id == notification.id);
+        // Match by both id and packageName to avoid cross-app collisions
+        // (sbn.id is an integer that is not unique across apps).
+        final idx = _notifications.indexWhere(
+          (n) =>
+              n.id == notification.id &&
+              n.packageName == notification.packageName,
+        );
         if (idx != -1) {
           if (_notificationService.removeIfSourceAppRemoves) {
             final removedNotif = _notifications[idx].copyWith(isRemoved: true);
@@ -239,8 +244,11 @@ class NotificationProvider with ChangeNotifier {
           }
         }
       } else {
+        // Match by both id and packageName to avoid cross-app collisions.
         final existingIdx = _notifications.indexWhere(
-          (n) => n.id == notification.id,
+          (n) =>
+              n.id == notification.id &&
+              n.packageName == notification.packageName,
         );
         if (existingIdx == -1) {
           // New notification — insert at top
