@@ -123,23 +123,16 @@ class NotificationProvider with ChangeNotifier {
     debugPrint('NotificationProvider: Loading notifications from database...');
     try {
       final dbNotifs = await _store.getAllNotifications();
-      final excludedApps = await _notificationService.getExcludedApps();
-      final excludedChannels =
-          await _notificationService.getExcludedChannelKeys();
+      final exclusionSets = await Future.wait<Set<String>>([
+        _notificationService.getExcludedApps(),
+        _notificationService.getExcludedChannelKeys(),
+      ]);
+      final excludedApps = exclusionSets[0];
+      final excludedChannels = exclusionSets[1];
       _notifications =
           dbNotifs
               .map(_fromDbNotification)
-              .where(
-                (n) =>
-                    !excludedApps.contains(n.packageName) &&
-                    (n.channelId == null ||
-                        !excludedChannels.contains(
-                          _notificationService.excludedChannelKey(
-                            n.packageName,
-                            n.channelId!,
-                          ),
-                        )),
-              )
+              .where((n) => _isNotificationAllowed(n, excludedApps, excludedChannels))
               .toList();
       _paginationOffset = dbNotifs.length;
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -651,23 +644,16 @@ class NotificationProvider with ChangeNotifier {
       );
       _paginationOffset += newNotifications.length;
 
-      final excludedApps = await _notificationService.getExcludedApps();
-      final excludedChannels =
-          await _notificationService.getExcludedChannelKeys();
+      final exclusionSets = await Future.wait<Set<String>>([
+        _notificationService.getExcludedApps(),
+        _notificationService.getExcludedChannelKeys(),
+      ]);
+      final excludedApps = exclusionSets[0];
+      final excludedChannels = exclusionSets[1];
       final filtered =
           newNotifications
               .map(_fromDbNotification)
-              .where(
-                (n) =>
-                    !excludedApps.contains(n.packageName) &&
-                    (n.channelId == null ||
-                        !excludedChannels.contains(
-                          _notificationService.excludedChannelKey(
-                            n.packageName,
-                            n.channelId!,
-                          ),
-                        )),
-              )
+              .where((n) => _isNotificationAllowed(n, excludedApps, excludedChannels))
               .toList();
       _notifications.addAll(filtered);
 
@@ -704,6 +690,23 @@ class NotificationProvider with ChangeNotifier {
 
   Future<bool> openAppInfo(String packageName) async {
     return await _notificationService.openAppInfo(packageName);
+  }
+
+  bool _isNotificationAllowed(
+    AppNotification notification,
+    Set<String> excludedApps,
+    Set<String> excludedChannels,
+  ) {
+    if (excludedApps.contains(notification.packageName)) {
+      return false;
+    }
+    final channelId = notification.channelId;
+    if (channelId == null) {
+      return true;
+    }
+    return !excludedChannels.contains(
+      _notificationService.excludedChannelKey(notification.packageName, channelId),
+    );
   }
 
   Future<bool> openAppNotificationSettings(String packageName) async {
