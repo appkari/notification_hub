@@ -307,7 +307,8 @@ class _FakeExclusionProvider extends NotificationProvider {
   @override
   Future<void> removeNotification(String id, {String? packageName}) async {
     final index = _notifs.indexWhere(
-      (n) => n.id == id && (packageName == null || n.packageName == packageName),
+      (n) =>
+          n.id == id && (packageName == null || n.packageName == packageName),
     );
     if (index == -1) return;
     final removed = _notifs.removeAt(index);
