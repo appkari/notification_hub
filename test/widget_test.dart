@@ -508,9 +508,11 @@ class FakeNotificationProvider extends NotificationProvider {
   }
 
   @override
-  Future<void> removeNotification(String id) async {
+  Future<void> removeNotification(String id, {String? packageName}) async {
     final index = _notificationsValue.indexWhere(
-      (notification) => notification.id == id,
+      (notification) =>
+          notification.id == id &&
+          (packageName == null || notification.packageName == packageName),
     );
     if (index == -1) {
       return;
