@@ -160,12 +160,9 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                                           itemBuilder: (context, idx) {
                                             final notification =
                                                 channelNotifications[idx];
-                                            return Opacity(
-                                              opacity: 0.5,
-                                              child: NotificationItemWidget(
-                                                notification: notification,
-                                                enableInteractions: false,
-                                              ),
+                                            return NotificationItemWidget(
+                                              notification: notification,
+                                              enableInteractions: false,
                                             );
                                           },
                                         ),

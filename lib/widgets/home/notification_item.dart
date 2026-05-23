@@ -87,7 +87,10 @@ class _DismissibleNotificationItemState
     final messenger = ScaffoldMessenger.of(context);
 
     // Remove from active notifications
-    await provider.removeNotification(widget.notification.id);
+    await provider.removeNotification(
+      widget.notification.id,
+      packageName: widget.notification.packageName,
+    );
 
     if (mounted) {
       // Show undo snackbar

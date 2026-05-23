@@ -514,10 +514,14 @@ class NotificationProvider with ChangeNotifier {
   }
 
   // Add method to remove a single notification
-  Future<void> removeNotification(String id) async {
+  Future<void> removeNotification(String id, {String? packageName}) async {
     debugPrint('NotificationProvider: Removing notification with id: $id...');
     try {
-      final index = _notifications.indexWhere((n) => n.id == id);
+      final index = _notifications.indexWhere(
+        (n) =>
+            n.id == id &&
+            (packageName == null || n.packageName == packageName),
+      );
       if (index == -1) {
         debugPrint(
           'NotificationProvider: Notification $id not found, skipping removal.',
