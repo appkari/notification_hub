@@ -522,9 +522,8 @@ class FakeNotificationProvider extends NotificationProvider {
     String packageName,
   ) async {
     clearAppCalls.add(packageName);
-    final removed = _notificationsValue
-        .where((n) => n.packageName == packageName)
-        .toList();
+    final removed =
+        _notificationsValue.where((n) => n.packageName == packageName).toList();
     _notificationsValue.removeWhere((n) => n.packageName == packageName);
     _historyValue.insertAll(0, removed);
     notifyListeners();
