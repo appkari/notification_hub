@@ -30,6 +30,7 @@ class NotificationService {
   Set<String> _excludedApps = {};
   final String _excludedAppsKey = 'excludedApps'; // Key for SharedPreferences
   Set<String> _excludedChannels = {};
+  bool _excludedChannelsLoaded = false;
   static const String _excludedChannelsKey = 'excludedNotificationChannels';
 
   // Track programmatic removals
@@ -391,9 +392,11 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       _excludedChannels =
           prefs.getStringList(_excludedChannelsKey)?.toSet() ?? <String>{};
+      _excludedChannelsLoaded = true;
     } catch (e) {
       debugPrint('NotificationService: Error loading excluded channels: $e');
       _excludedChannels = <String>{};
+      _excludedChannelsLoaded = true;
     }
   }
 
@@ -448,7 +451,7 @@ class NotificationService {
   }
 
   Future<Set<String>> getExcludedChannelKeys() async {
-    if (_excludedChannels.isEmpty) {
+    if (!_excludedChannelsLoaded) {
       await _loadExcludedChannels();
     }
     // Defensive copy — same reason as getExcludedApps.
@@ -456,7 +459,7 @@ class NotificationService {
   }
 
   Future<bool> isChannelExcluded(String packageName, String channelId) async {
-    if (_excludedChannels.isEmpty) {
+    if (!_excludedChannelsLoaded) {
       await _loadExcludedChannels();
     }
     return _excludedChannels.contains(

@@ -233,6 +233,14 @@ class NotiHubNotificationService : NotificationListenerService() {
         val key = sbn.key
         pendingRunnables.remove(key)?.let { debounceHandler.removeCallbacks(it) }
         pendingPostedNotifications.remove(key)
+
+        if (!isListening) {
+            Log.d("NotiHubService", "isListening is false, not forwarding removal to Flutter")
+            // Still clean up programmatic tracking to keep state consistent
+            programmaticallyRemovedKeys.remove(key)
+            pendingIntents.remove(key)
+            return
+        }
         val packageManager = applicationContext.packageManager
         val appName = try {
             val applicationInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
