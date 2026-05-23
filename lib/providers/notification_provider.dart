@@ -25,10 +25,12 @@ class NotificationProvider with ChangeNotifier {
     IconCacheService? iconCacheService,
     NotificationStore? store,
     bool autoInitialize = true,
+    bool enableSummaryNotificationUpdates = true,
   }) : _notificationService = notificationService ?? NotificationService(),
        _ownsNotificationService = notificationService == null,
        _iconCacheService = iconCacheService ?? IconCacheService(),
-       _store = store ?? DriftNotificationStore() {
+       _store = store ?? DriftNotificationStore(),
+       _enableSummaryNotificationUpdates = enableSummaryNotificationUpdates {
     if (autoInitialize) {
       _initialize();
     }
@@ -38,6 +40,7 @@ class NotificationProvider with ChangeNotifier {
   final bool _ownsNotificationService;
   final IconCacheService _iconCacheService;
   final NotificationStore _store;
+  final bool _enableSummaryNotificationUpdates;
   List<AppNotification> _notifications = [];
   List<AppNotification> _notificationHistory = [];
   int _historyDays = 7;
@@ -132,7 +135,10 @@ class NotificationProvider with ChangeNotifier {
       _notifications =
           dbNotifs
               .map(_fromDbNotification)
-              .where((n) => _isNotificationAllowed(n, excludedApps, excludedChannels))
+              .where(
+                (n) =>
+                    _isNotificationAllowed(n, excludedApps, excludedChannels),
+              )
               .toList();
       _paginationOffset = dbNotifs.length;
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -665,7 +671,10 @@ class NotificationProvider with ChangeNotifier {
       final filtered =
           newNotifications
               .map(_fromDbNotification)
-              .where((n) => _isNotificationAllowed(n, excludedApps, excludedChannels))
+              .where(
+                (n) =>
+                    _isNotificationAllowed(n, excludedApps, excludedChannels),
+              )
               .toList();
       _notifications.addAll(filtered);
 
@@ -717,7 +726,10 @@ class NotificationProvider with ChangeNotifier {
       return true;
     }
     return !excludedChannels.contains(
-      _notificationService.excludedChannelKey(notification.packageName, channelId),
+      _notificationService.excludedChannelKey(
+        notification.packageName,
+        channelId,
+      ),
     );
   }
 
@@ -915,6 +927,7 @@ class NotificationProvider with ChangeNotifier {
   }
 
   void _updatePersistentSummaryNotification() {
+    if (!_enableSummaryNotificationUpdates) return;
     // Count unique apps with notifications
     final appSet = <String>{};
     for (final n in _notifications) {

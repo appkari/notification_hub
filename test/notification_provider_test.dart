@@ -289,36 +289,40 @@ void main() {
   });
 
   group('NotificationProvider.loadMoreNotifications', () {
-    test('loadNotifications filters out excluded channels from stored data', () async {
-      final service = NotificationService();
-      await service.excludeChannel('com.chat', 'social');
-      final store = _LoadMoreNotificationStore(
-        allNotifications: [
-          _dbNotification(
-            id: 'excluded-channel',
-            packageName: 'com.chat',
-            title: 'Excluded channel',
-            channelId: 'social',
-          ),
-          _dbNotification(
-            id: 'included-channel',
-            packageName: 'com.chat',
-            title: 'Included channel',
-            channelId: 'updates',
-          ),
-        ],
-      );
-      final provider = NotificationProvider(
-        autoInitialize: false,
-        store: store,
-        notificationService: service,
-      );
+    test(
+      'loadNotifications filters out excluded channels from stored data',
+      () async {
+        final service = NotificationService();
+        await service.excludeChannel('com.chat', 'social');
+        final store = _LoadMoreNotificationStore(
+          allNotifications: [
+            _dbNotification(
+              id: 'excluded-channel',
+              packageName: 'com.chat',
+              title: 'Excluded channel',
+              channelId: 'social',
+            ),
+            _dbNotification(
+              id: 'included-channel',
+              packageName: 'com.chat',
+              title: 'Included channel',
+              channelId: 'updates',
+            ),
+          ],
+        );
+        final provider = NotificationProvider(
+          autoInitialize: false,
+          store: store,
+          notificationService: service,
+          enableSummaryNotificationUpdates: false,
+        );
 
-      await provider.loadNotifications();
+        await provider.loadNotifications();
 
-      expect(provider.notifications, hasLength(1));
-      expect(provider.notifications.single.id, 'included-channel');
-    });
+        expect(provider.notifications, hasLength(1));
+        expect(provider.notifications.single.id, 'included-channel');
+      },
+    );
 
     test('loadMoreNotifications filters out excluded channels', () async {
       final service = NotificationService();
