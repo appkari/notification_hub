@@ -522,8 +522,9 @@ class FakeNotificationProvider extends NotificationProvider {
     String packageName,
   ) async {
     clearAppCalls.add(packageName);
-    final removed =
-        _notificationsValue.where((n) => n.packageName == packageName).toList();
+    final removed = _notificationsValue
+        .where((n) => n.packageName == packageName)
+        .toList();
     _notificationsValue.removeWhere((n) => n.packageName == packageName);
     _historyValue.insertAll(0, removed);
     notifyListeners();
@@ -533,7 +534,8 @@ class FakeNotificationProvider extends NotificationProvider {
   @override
   Future<void> removeNotification(String id, {String? packageName}) async {
     final index = _notificationsValue.indexWhere(
-      (n) => n.id == id && (packageName == null || n.packageName == packageName),
+      (n) =>
+          n.id == id && (packageName == null || n.packageName == packageName),
     );
     if (index == -1) return;
     final removed = _notificationsValue.removeAt(index);

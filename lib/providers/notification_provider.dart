@@ -132,14 +132,12 @@ class NotificationProvider with ChangeNotifier {
       ]);
       final excludedApps = exclusionSets[0];
       final excludedChannels = exclusionSets[1];
-      _notifications =
-          dbNotifs
-              .map(_fromDbNotification)
-              .where(
-                (n) =>
-                    _isNotificationAllowed(n, excludedApps, excludedChannels),
-              )
-              .toList();
+      _notifications = dbNotifs
+          .map(_fromDbNotification)
+          .where(
+            (n) => _isNotificationAllowed(n, excludedApps, excludedChannels),
+          )
+          .toList();
       _paginationOffset = dbNotifs.length;
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       debugPrint(
@@ -389,8 +387,9 @@ class NotificationProvider with ChangeNotifier {
     );
 
     // Remove existing notifications for this app from the active list
-    final removed =
-        _notifications.where((n) => n.packageName == packageName).toList();
+    final removed = _notifications
+        .where((n) => n.packageName == packageName)
+        .toList();
     _notifications.removeWhere((n) => n.packageName == packageName);
 
     // Archive to history and clean up from DB / system tray
@@ -466,8 +465,9 @@ class NotificationProvider with ChangeNotifier {
       'NotificationProvider: Clearing notifications for app: $packageName...',
     );
     // Find all notifications for this app
-    final appNotifications =
-        _notifications.where((n) => n.packageName == packageName).toList();
+    final appNotifications = _notifications
+        .where((n) => n.packageName == packageName)
+        .toList();
 
     // Remove from in-memory list first to avoid intermediate rebuilds
     // while the dismissed Dismissible is still in the tree.
@@ -491,12 +491,9 @@ class NotificationProvider with ChangeNotifier {
     required String packageName,
     required String channelId,
   }) async {
-    final channelNotifications =
-        _notifications
-            .where(
-              (n) => n.packageName == packageName && n.channelId == channelId,
-            )
-            .toList();
+    final channelNotifications = _notifications
+        .where((n) => n.packageName == packageName && n.channelId == channelId)
+        .toList();
 
     await _archiveNotifications(channelNotifications);
     for (final notification in channelNotifications) {
@@ -519,8 +516,7 @@ class NotificationProvider with ChangeNotifier {
     try {
       final index = _notifications.indexWhere(
         (n) =>
-            n.id == id &&
-            (packageName == null || n.packageName == packageName),
+            n.id == id && (packageName == null || n.packageName == packageName),
       );
       if (index == -1) {
         debugPrint(
@@ -626,18 +622,18 @@ class NotificationProvider with ChangeNotifier {
       collect(notification);
     }
 
-    final result =
-        channels.values.toList()..sort((a, b) {
-          final appCompare = a.appName.toLowerCase().compareTo(
-            b.appName.toLowerCase(),
-          );
-          if (appCompare != 0) {
-            return appCompare;
-          }
-          return a.channelName.toLowerCase().compareTo(
-            b.channelName.toLowerCase(),
-          );
-        });
+    final result = channels.values.toList()
+      ..sort((a, b) {
+        final appCompare = a.appName.toLowerCase().compareTo(
+          b.appName.toLowerCase(),
+        );
+        if (appCompare != 0) {
+          return appCompare;
+        }
+        return a.channelName.toLowerCase().compareTo(
+          b.channelName.toLowerCase(),
+        );
+      });
     return result;
   }
 
@@ -672,14 +668,12 @@ class NotificationProvider with ChangeNotifier {
       ]);
       final excludedApps = exclusionSets[0];
       final excludedChannels = exclusionSets[1];
-      final filtered =
-          newNotifications
-              .map(_fromDbNotification)
-              .where(
-                (n) =>
-                    _isNotificationAllowed(n, excludedApps, excludedChannels),
-              )
-              .toList();
+      final filtered = newNotifications
+          .map(_fromDbNotification)
+          .where(
+            (n) => _isNotificationAllowed(n, excludedApps, excludedChannels),
+          )
+          .toList();
       _notifications.addAll(filtered);
 
       _hasMoreData =
@@ -907,11 +901,10 @@ class NotificationProvider with ChangeNotifier {
   }
 
   String _prettifyChannelId(String value) {
-    final normalized =
-        value
-            .replaceAll(RegExp(r'[_\-.]+'), ' ')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim();
+    final normalized = value
+        .replaceAll(RegExp(r'[_\-.]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
     if (normalized.isEmpty) {
       return value;
     }
